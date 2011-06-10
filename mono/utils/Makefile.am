@@ -78,7 +78,8 @@ monoutils_sources = \
 	mach-support.c	\
 	mach-support.h  \
 	mach-tls.h  \
-	memcheck.h
+	memcheck.h	\
+	mono-memory-model.h
 
 arch_sources = 
 
