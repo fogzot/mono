@@ -51,7 +51,8 @@
 	((LLVM_MAJOR_VERSION > (major)) ||									\
 	 ((LLVM_MAJOR_VERSION == (major)) && (LLVM_MINOR_VERSION >= (minor))))
 
-extern "C" void LLVMInitializeX86TargetInfo();
+extern "C" void LLVMInitializeARMTargetInfo();
+extern "C" void LLVMInitializeARMTarget ();
 
 using namespace llvm;
 
@@ -463,8 +464,8 @@ mono_llvm_create_ee (LLVMModuleProviderRef MP, AllocCodeMemoryCb *alloc_cb, Func
 
   force_pass_linking ();
 
-  LLVMInitializeX86Target ();
-  LLVMInitializeX86TargetInfo ();
+  LLVMInitializeARMTarget ();
+  LLVMInitializeARMTargetInfo ();
 
   mono_mm = new MonoJITMemoryManager ();
   mono_mm->alloc_cb = alloc_cb;
