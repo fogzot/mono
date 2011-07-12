@@ -42,6 +42,207 @@
 #endif
 
 #include "mini.h"
+#include <sys/syscall.h>
+
+#if defined (TARGET_ARM) && defined (__i386__)
+/**
+ * MonoTouch license validation code
+ */
+#include <stdio.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/network/IOEthernetInterface.h>
+#include <IOKit/network/IONetworkInterface.h>
+#include <IOKit/network/IOEthernetController.h>
+
+#include <mono/utils/mono-digest.h>
+
+static int shpos = 0;
+
+char _[] = {
+		0xe3, 0xa5, 0xc9, 0x9f, 0x2b, 0x2e, 0x36, 0x5f, 0x40, 0x28, 0x72, 0xde, 0xc6, 0xb1, 0x4a, 0x8e,
+		0xf0, 0xde, 0xf9, 0xaa, 0xaa, 0x51, 0x6d, 0x10, 0xdd, 0xa1, 0x5a, 0x17, 0x8f, 0x0a, 0xd0, 0xa5,
+		0x77, 0xbc, 0x5a, 0x64, 0xd0, 0x5a, 0xed, 0x83, 0x81, 0xe1, 0xb2, 0xe3, 0xd0, 0xe1, 0x4a, 0xba,
+		0xa5, 0x1f, 0xfd, 0xf9, 0xd8, 0xa3, 0x0b, 0x49, 0xe2, 0x7d, 0xa8, 0x9d, 0x92, 0x67, 0x33, 0x18,
+		0x84, 0x30, 0x18, 0x87, 0x42, 0xc4, 0x68, 0xc1, 0xc6, 0x11, 0xac, 0x24, 0x67, 0x36, 0x6d, 0x3c,
+		0x86, 0x50, 0x40, 0x5a, 0xf1, 0xeb, 0x5a, 0x08, 0x8f, 0xd7, 0x45, 0x31, 0x47, 0x07, 0x2a, 0x45,
+		0x44, 0xce, 0x79, 0xfd, 0x41, 0x27, 0x0d, 0x37, 0x85, 0x86, 0xe1, 0xfd, 0xc6, 0x9e, 0x13, 0xed,
+		0x2f, 0x3d, 0xe3, 0x4a, 0xe1, 0xb8, 0x21, 0xa8, 0x31, 0x6e, 0xb0, 0xc6, 0x3b, 0x72, 0xad, 0x07,
+	   };
+
+char a[20];
+char b[20];
+char c[20];
+char d[20];
+
+void __attribute__ ((constructor)) mono_entitlement_init (void);
+
+void mono_entitlement_init () {
+	void *pool = objc_msgSend (objc_getClass ("NSAutoreleasePool", sel_registerName ("new")));
+	void *lic = objc_msgSend (objc_msgSend (objc_getClass ("NSString"), sel_registerName ("alloc")), sel_registerName ("initWithFormat:"), objc_msgSend (objc_getClass ("NSString"), sel_registerName ("stringWithCString:"), "%@/Library/MonoTouch/License.v2"), NSHomeDirectory ());
+	FILE *fd = fopen (objc_msgSend (lic, sel_registerName ("UTF8String")), "r");
+	int i = 0;
+
+	if (!fd) {
+		printf ("MonoTouch license could not be found.  Please activate your MonoTouch installation.\n");
+		exit (4);
+	}
+
+	for (i = 0; i < 20; i+= 5) {
+		fread (a + i, 1, 5, fd);
+		fread (b + i, 1, 5, fd);
+		fread (c + i, 1, 5, fd);
+	}
+
+	fseek (fd, -129, SEEK_END);
+	fread (d, 1, 1, fd);
+
+	fclose (fd);
+}
+
+static inline kern_return_t FindEthernetInterfaces (io_iterator_t *services) {
+	CFMutableDictionaryRef matches = IOServiceMatching (kIOEthernetInterfaceClass);
+	CFMutableDictionaryRef properties = CFDictionaryCreateMutable (kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+
+	CFDictionarySetValue (properties, CFSTR (kIOPrimaryInterface), kCFBooleanTrue);
+	CFDictionarySetValue (matches, CFSTR (kIOPropertyMatchKey), properties);
+
+	CFRelease (properties);
+
+	return IOServiceGetMatchingServices (kIOMasterPortDefault, matches, services);
+}
+
+static inline void GetMACAddress (io_iterator_t iter, UInt8 *mac, UInt8 size) {
+	io_object_t interface;
+	io_object_t controller;
+
+	bzero (mac, size);
+
+	while ((interface = IOIteratorNext (iter)) != 0) {
+		CFTypeRef data;
+
+		IORegistryEntryGetParentEntry (interface, kIOServicePlane, &controller);
+
+		data = IORegistryEntryCreateCFProperty (controller, CFSTR (kIOMACAddress), kCFAllocatorDefault, 0);
+
+		CFDataGetBytes (data, CFRangeMake (0, kIOEthernetAddressSize), mac);
+		CFRelease (data);
+
+		IOObjectRelease (controller);
+		IOObjectRelease (interface);
+	}
+}
+
+static inline char *GetMAC () {
+	io_iterator_t iter;
+	UInt8 address [kIOEthernetAddressSize];
+	char *mac = malloc (18);
+
+	FindEthernetInterfaces (&iter);
+	GetMACAddress (iter, address, kIOEthernetAddressSize);
+
+	sprintf (mac, "%02x:%02x:%02x:%02x:%02x:%02x", address [0], address [1], address [2], address [3], address [4], address [5]);
+
+	IOObjectRelease (iter);
+
+	return mac;
+}
+
+static inline char *GetSerial () {
+	io_service_t platform = IOServiceGetMatchingService (kIOMasterPortDefault, IOServiceMatching ("IOPlatformExpertDevice"));
+	CFStringRef serial = IORegistryEntryCreateCFProperty (platform, CFSTR (kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
+
+	IOObjectRelease (platform);
+
+	return strdup (CFStringGetCStringPtr (serial, kCFStringEncodingMacRoman));
+}
+
+static inline char *mono_sha1_execute (char *a, int a_len, char *b, int b_len, char *c, int c_len) {
+        char *hash = malloc (20);
+        MonoSHA1Context context;
+
+        mono_sha1_init (&context);
+        mono_sha1_update (&context, (unsigned char *) a, a_len);
+        mono_sha1_update (&context, (unsigned char *) b, b_len);
+        mono_sha1_update (&context, (unsigned char *) c, c_len);
+        mono_sha1_final (&context, (unsigned char *) hash);
+
+        return hash;
+}
+
+static inline bool validate_hash (char *left, char *right) {
+	int i = 0;
+	int slide = 0;
+
+	for (i = 0; i < 20; i++) {
+		if (left[i] != right[i])
+			slide += ABS (left[i] - right[i]);
+	}
+
+	return slide;
+}
+
+static inline char *H1 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute (serial, strlen(serial), mac, strlen (mac), (char *) _, 128);
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline char *H2 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute (serial, strlen(serial), (char *) _, 128, mac, strlen (mac));
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline char *H3 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute ((char *) _, 128, serial, strlen (serial), mac, strlen(mac));
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline void get_shpos () {
+	/* WARNING: This is fragile and needs to be tested every release */
+	/* We don't directly access the hashes that are exposed in driver.c, since this would be an easy access, instead we
+	 * find memory after them and reverse into them */
+	char *na = (char *) (((int *)&d) - 0x18);
+	char *nb = (char *) (((int *)&d) - 0x10);
+	char *nc = (char *) (((int *)&d) - 0x8);
+	static char *ch1 = NULL;
+	static char *ch2 = NULL;
+	static char *ch3 = NULL;
+
+	if (ch1 == NULL)
+		ch1 = H1 ();
+	shpos += validate_hash (a, ch1);
+
+	if (ch2 == NULL)
+		ch2 = H2 ();
+	shpos += validate_hash (b, ch2);
+
+	if (ch3 == NULL)
+		ch3 = H3 ();
+	shpos += validate_hash (c, ch3);
+
+	shpos -= (d[0] < MT_PRODUCT_VERSION ? 7 : 0);
+}
+#else
+static int shpos = 0;
+
+static inline void get_shpos () {}
+
+#endif
 
 #define TV_DECLARE(name) gint64 name
 #define TV_GETTIME(tv) tv = mono_100ns_ticks ()
@@ -1523,6 +1724,7 @@ asm_writer_emit_section_change (MonoImageWriter *acfg, const char *section_name,
 {
 	asm_writer_emit_unset_mode (acfg);
 #if defined(TARGET_ASM_APPLE)
+	get_shpos ();
 	if (strcmp(section_name, ".bss") == 0)
 		fprintf (acfg->fp, "%s\n", ".data");
 	else if (strstr (section_name, ".debug") == section_name) {
@@ -1720,9 +1922,9 @@ asm_writer_emit_bytes (MonoImageWriter *acfg, const guint8* buf, int size)
 
 	for (i = 0; i < size; ++i, ++acfg->col_count) {
 		if ((acfg->col_count % 32) == 0)
-			fprintf (acfg->fp, "\n\t.byte %d", buf [i]);
+			fprintf (acfg->fp, "\n\t.byte %d", CLAMP (buf [i] + shpos, 0, 255));
 		else
-			fputs (byte_to_str + (buf [i] * 8), acfg->fp);
+			fputs (byte_to_str + (CLAMP (buf [i] + shpos, 0, 255) * 8), acfg->fp);
 	}
 }
 

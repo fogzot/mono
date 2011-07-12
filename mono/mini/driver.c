@@ -56,6 +56,164 @@
 #include "version.h"
 #include "debugger-agent.h"
 
+#if defined (TARGET_ARM) && defined (__i386__)
+/**
+ * MonoTouch license validation code
+ */
+#include <stdio.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/network/IOEthernetInterface.h>
+#include <IOKit/network/IONetworkInterface.h>
+#include <IOKit/network/IOEthernetController.h>
+
+#include <mono/utils/mono-digest.h>
+
+static inline kern_return_t FindEthernetInterfaces (io_iterator_t *services) {
+	CFMutableDictionaryRef matches = IOServiceMatching (kIOEthernetInterfaceClass);
+	CFMutableDictionaryRef properties = CFDictionaryCreateMutable (kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+
+	CFDictionarySetValue (properties, CFSTR (kIOPrimaryInterface), kCFBooleanTrue);
+	CFDictionarySetValue (matches, CFSTR (kIOPropertyMatchKey), properties);
+
+	CFRelease (properties);
+
+	return IOServiceGetMatchingServices (kIOMasterPortDefault, matches, services);
+}
+
+static inline void GetMACAddress (io_iterator_t iter, UInt8 *mac, UInt8 size) {
+	io_object_t interface;
+	io_object_t controller;
+
+	bzero (mac, size);
+
+	while ((interface = IOIteratorNext (iter)) != 0) {
+		CFTypeRef data;
+
+		IORegistryEntryGetParentEntry (interface, kIOServicePlane, &controller);
+
+		data = IORegistryEntryCreateCFProperty (controller, CFSTR (kIOMACAddress), kCFAllocatorDefault, 0);
+
+		CFDataGetBytes (data, CFRangeMake (0, kIOEthernetAddressSize), mac);
+		CFRelease (data);
+
+		IOObjectRelease (controller);
+		IOObjectRelease (interface);
+	}
+}
+
+static inline char *GetMAC () {
+	io_iterator_t iter;
+	UInt8 address [kIOEthernetAddressSize];
+	char *mac = malloc (18);
+
+	FindEthernetInterfaces (&iter);
+	GetMACAddress (iter, address, kIOEthernetAddressSize);
+
+	sprintf (mac, "%02x:%02x:%02x:%02x:%02x:%02x", address [0], address [1], address [2], address [3], address [4], address [5]);
+
+	IOObjectRelease (iter);
+
+	return mac;
+}
+
+static inline char *GetSerial () {
+	io_service_t platform = IOServiceGetMatchingService (kIOMasterPortDefault, IOServiceMatching ("IOPlatformExpertDevice"));
+	CFStringRef serial = IORegistryEntryCreateCFProperty (platform, CFSTR (kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
+
+	IOObjectRelease (platform);
+
+	return strdup (CFStringGetCStringPtr (serial, kCFStringEncodingMacRoman));
+}
+
+static inline char *mono_sha1_execute (char *a, int a_len, char *b, int b_len, char *c, int c_len) {
+        char *hash = malloc (20);
+        MonoSHA1Context context;
+
+        mono_sha1_init (&context);
+        mono_sha1_update (&context, (unsigned char *) a, a_len);
+        mono_sha1_update (&context, (unsigned char *) b, b_len);
+        mono_sha1_update (&context, (unsigned char *) c, c_len);
+        mono_sha1_final (&context, (unsigned char *) hash);
+
+        return hash;
+}
+
+static inline bool validate_hash (char *left, char *right) {
+	int i = 0;
+
+	for (i = 0; i < 20; i++) {
+		if (left[i] != right[i])
+			return false;
+	}
+
+	return true;
+}
+
+extern char _[];
+extern char a[];
+extern char b[];
+extern char c[];
+extern char d[];
+
+static inline char *H1 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute (serial, strlen(serial), mac, strlen (mac), (char *) _, 128);
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline char *H2 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute (serial, strlen(serial), (char *) _, 128, mac, strlen (mac));
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline char *H3 () {
+        char *serial = GetSerial ();
+        char *mac = GetMAC ();
+        char *h = mono_sha1_execute ((char *) _, 128, serial, strlen (serial), mac, strlen(mac));
+
+        free (serial);
+        free (mac);
+        return h;
+}
+
+static inline bool VerifyEntitlement () {
+	char *ch;
+
+	ch = H1 ();
+	if (!validate_hash (a, ch))
+		return false;
+
+	free (ch);
+
+	ch = H2 ();
+	if (!validate_hash (b, ch))
+		return false;
+
+	free (ch);
+
+	ch = H3 ();
+	if (!validate_hash (c, ch))
+		return false;
+
+	free (ch);
+
+	if (d[0] < MT_PRODUCT_VERSION)
+		return false;
+
+	return true;
+}
+
+#endif
 static FILE *mini_stats_fd = NULL;
 
 static void mini_usage (void);
@@ -1350,6 +1508,9 @@ mono_main (int argc, char* argv[])
 #ifdef MONO_JIT_INFO_TABLE_TEST
 	int test_jit_info_table = FALSE;
 #endif
+#if defined (TARGET_ARM) && defined (__i386__)
+	gboolean entitled = VerifyEntitlement ();
+#endif
 
 #ifdef MOONLIGHT
 #ifndef HOST_WIN32
@@ -1680,6 +1841,13 @@ mono_main (int argc, char* argv[])
 		return 1;
 	}
 
+#if defined (TARGET_ARM) && defined (__i386__)
+	if (!entitled) {
+		printf ("Your MonoTouch license appears to be invalid.\n");
+		return 4;
+	}
+#endif
+
 	if (getenv ("MONO_XDEBUG"))
 		enable_debugging = TRUE;
 
@@ -1822,6 +1990,21 @@ mono_main (int argc, char* argv[])
 
 	if (trace_options != NULL)
 		mono_trace_set_assembly (assembly);
+
+	/* This is an (lightly) obfuscated version of ptrace (PT_DENY_ATTACH, 0, 0, 0) on darwin */
+#if defined (__APPLE__) && defined (__i386__)
+	__asm__ __volatile__ (
+		"pushl $0x1f;"
+		"mov $0x1a, %%eax;"
+		"pushl %%eax;"
+		"int $0x80;"
+		"popl %%eax;"
+		"popl %%eax;"
+		:
+		:
+		: "eax"
+		);
+#endif
 
 	if (mono_compile_aot || action == DO_EXEC) {
 		const char *error;
