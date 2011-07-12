@@ -29,7 +29,9 @@
 
 using System.Diagnostics;
 using System.Globalization;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -176,6 +178,7 @@ namespace System.Reflection {
 		}
 
 		internal virtual int get_next_table_index (object obj, int table, bool inc) {
+#if !FULL_AOT_RUNTIME
 			if (this is MethodBuilder) {
 				MethodBuilder mb = (MethodBuilder)this;
 				return mb.get_next_table_index (obj, table, inc);
@@ -184,6 +187,7 @@ namespace System.Reflection {
 				ConstructorBuilder mb = (ConstructorBuilder)this;
 				return mb.get_next_table_index (obj, table, inc);
 			}
+#endif
 			throw new Exception ("Method is not a builder method");
 		}
 

@@ -33,7 +33,9 @@
 
 using System.Diagnostics;
 using System.Reflection;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -691,8 +693,10 @@ namespace System {
 			Type type = this;
 			if (type is MonoType)
 				return GetTypeCodeInternal (type);
+#if !FULL_AOT_RUNTIME
 			if (type is TypeBuilder)
 				return ((TypeBuilder)type).GetTypeCodeInternal ();
+#endif
 
 			type = type.UnderlyingSystemType;
 
@@ -859,8 +863,10 @@ namespace System {
 			if (Equals (c))
 				return true;
 
+#if !FULL_AOT_RUNTIME
 			if (c is TypeBuilder)
 				return ((TypeBuilder)c).IsAssignableTo (this);
+#endif
 
 			/* Handle user defined type classes */
 			if (!IsSystemType) {
@@ -1348,8 +1354,12 @@ namespace System {
 
 		internal virtual bool IsCompilerContext {
 			get {
+#if FULL_AOT_RUNTIME
+				return false;
+#else
 				AssemblyBuilder builder = Assembly as AssemblyBuilder;
 				return builder != null && builder.IsCompilerContext;
+#endif
 			}
 		}
 
@@ -1394,6 +1404,7 @@ namespace System {
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern Type MakeGenericType (Type gt, Type [] types);
 
+#if !FULL_AOT_RUNTIME
 		static AssemblyBuilder PeelAssemblyBuilder (Type type)
 		{
 			if (type.Assembly is AssemblyBuilder)
@@ -1412,6 +1423,7 @@ namespace System {
 			}
 			return null;
 		}
+#endif
 
 		public virtual Type MakeGenericType (params Type[] typeArguments)
 		{
@@ -1425,7 +1437,9 @@ namespace System {
 				throw new ArgumentException (String.Format ("The type or method has {0} generic parameter(s) but {1} generic argument(s) where provided. A generic argument must be provided for each generic parameter.", GetGenericArguments ().Length, typeArguments.Length), "typeArguments");
 
 			bool hasUserType = false;
+#if !FULL_AOT_RUNTIME
 			AssemblyBuilder compilerContext = null;
+#endif
 
 			Type[] systemTypes = new Type[typeArguments.Length];
 			for (int i = 0; i < typeArguments.Length; ++i) {
@@ -1435,16 +1449,20 @@ namespace System {
 
 				if (!(t is MonoType))
 					hasUserType = true;
+#if !FULL_AOT_RUNTIME
 				if (t.IsCompilerContext)
 					compilerContext = PeelAssemblyBuilder (t);
+#endif
 				systemTypes [i] = t;
 			}
 
+#if !FULL_AOT_RUNTIME
 			if (hasUserType) {
 				if (compilerContext != null)
 					return compilerContext.MakeGenericType (this, typeArguments);
 				return new MonoGenericClass (this, typeArguments);
 			}
+#endif
 
 			Type res = MakeGenericType (this, systemTypes);
 			if (res == null)

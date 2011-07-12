@@ -39,11 +39,10 @@ using System.Threading;
 
 using System.Runtime.ConstrainedExecution;
 #if !MOONLIGHT
+#if !FULL_AOT_RUNTIME
 using System.Runtime.InteropServices.ComTypes;
-#endif
-
-#if !MOONLIGHT
 using Mono.Interop;
+#endif
 #endif
 
 namespace System.Runtime.InteropServices
@@ -189,7 +188,7 @@ namespace System.Runtime.InteropServices
 			throw new NotImplementedException ();
 		}
 
-#if !MOONLIGHT
+#if !FULL_AOT_RUNTIME && !MOONLIGHT
 		public static object CreateWrapperOfType (object o, Type t)
 		{
 			__ComObject co = o as __ComObject;
@@ -272,7 +271,7 @@ namespace System.Runtime.InteropServices
 			FreeHGlobal (s);
 		}
 
-#if !MOONLIGHT
+#if !FULL_AOT_RUNTIME && !MOONLIGHT
 		public static Guid GenerateGuidForType (Type type)
 		{
 			return type.GUID;
@@ -360,8 +359,9 @@ namespace System.Runtime.InteropServices
 
 			return m.GetHINSTANCE ();
 		}
-#endif // !NET_2_1
+#endif // !MOONLIGHT
 
+#if !FULL_AOT_RUNTIME
 		[MonoTODO ("SetErrorInfo")]
 		public static int GetHRForException (Exception e)
 		{
@@ -498,6 +498,7 @@ namespace System.Runtime.InteropServices
 			throw new NotImplementedException ();
 		}
 
+#if !FULL_AOT_RUNTIME
 		[Obsolete]
 		[MonoTODO]
 		public static string GetTypeInfoName (UCOMITypeInfo pTI)
@@ -565,6 +566,7 @@ namespace System.Runtime.InteropServices
 		{
 			throw new NotImplementedException ();
 		}
+#endif
 
 		[MonoTODO]
 		[Obsolete ("This method has been deprecated")]
@@ -588,6 +590,7 @@ namespace System.Runtime.InteropServices
 			throw new NotImplementedException ();
 		}
 #endif // !NET_2_1
+#endif
 
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		[ReliabilityContractAttribute (Consistency.WillNotCorruptState, Cer.Success)]
@@ -744,6 +747,7 @@ namespace System.Runtime.InteropServices
 			return ReleaseInternal (pUnk);
 		}
 
+#if !FULL_AOT_RUNTIME
 #if !MOONLIGHT
 		[MethodImplAttribute (MethodImplOptions.InternalCall)]
 		private extern static int ReleaseComObjectInternal (object co);
@@ -770,6 +774,7 @@ namespace System.Runtime.InteropServices
 			throw new NotSupportedException ("MSDN states user code should never need to call this method.");
 		}
 #endif // !NET_2_1
+#endif
 
 		[ComVisible (true)]
 		public static int SizeOf (object structure)
@@ -1049,6 +1054,7 @@ namespace System.Runtime.InteropServices
 			return null;
 		}
 
+#if !FULL_AOT_RUNTIME
 #if !MOONLIGHT
 		public static int FinalReleaseComObject (object o)
 		{
@@ -1056,7 +1062,7 @@ namespace System.Runtime.InteropServices
 			return 0;
 		}
 #endif
-
+#endif
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private static extern Delegate GetDelegateForFunctionPointerInternal (IntPtr ptr, Type t);
 

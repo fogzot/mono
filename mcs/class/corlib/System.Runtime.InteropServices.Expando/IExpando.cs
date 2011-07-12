@@ -31,7 +31,9 @@
 //
 
 using System.Reflection;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 
 namespace System.Runtime.InteropServices.Expando
 {

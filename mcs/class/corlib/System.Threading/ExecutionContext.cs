@@ -126,7 +126,6 @@ namespace System.Threading {
 
 			ec.FlowSuppressed = false;
 		}
-
 #if !MOONLIGHT
 		[MonoTODO ("only the SecurityContext is considered")]
 		[SecurityPermission (SecurityAction.LinkDemand, Infrastructure = true)]

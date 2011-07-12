@@ -549,7 +549,11 @@ namespace System
 
 		internal bool IsTransparentProxy ()
 		{
+#if MONOTOUCH
+			return false;
+#else
 			return RemotingServices.IsTransparentProxy (m_target);
+#endif
 		}
 	}
 }

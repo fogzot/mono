@@ -31,6 +31,7 @@
 // (C) 2001-2002 Ximian, Inc.  http://www.ximian.com
 //
 
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 using System;
@@ -145,3 +146,5 @@ namespace System.Reflection.Emit {
 		}
 	}
 }
+
+#endif

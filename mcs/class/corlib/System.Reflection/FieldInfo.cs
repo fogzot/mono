@@ -27,7 +27,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -189,6 +191,7 @@ namespace System.Reflection {
 			throw new NotImplementedException ();
 		}
 
+#if !FULL_AOT_RUNTIME
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		private extern UnmanagedMarshal GetUnmanagedMarshal ();
 
@@ -197,6 +200,7 @@ namespace System.Reflection {
 				return GetUnmanagedMarshal ();
 			}
 		}
+#endif
 
 		internal object[] GetPseudoCustomAttributes ()
 		{
@@ -208,9 +212,11 @@ namespace System.Reflection {
 			if (DeclaringType.IsExplicitLayout)
 				count ++;
 
+#if !FULL_AOT_RUNTIME
 			UnmanagedMarshal marshalAs = UMarshal;
 			if (marshalAs != null)
 				count ++;
+#endif
 
 			if (count == 0)
 				return null;
@@ -221,8 +227,10 @@ namespace System.Reflection {
 				attrs [count ++] = new NonSerializedAttribute ();
 			if (DeclaringType.IsExplicitLayout)
 				attrs [count ++] = new FieldOffsetAttribute (GetFieldOffset ());
+#if !FULL_AOT_RUNTIME
 			if (marshalAs != null)
 				attrs [count ++] = marshalAs.ToMarshalAsAttribute ();
+#endif
 
 			return attrs;
 		}

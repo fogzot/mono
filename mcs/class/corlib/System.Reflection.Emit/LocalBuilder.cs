@@ -33,6 +33,7 @@
 // (C) 2001, 2002 Ximian, Inc.  http://www.ximian.com
 //
 
+#if !FULL_AOT_RUNTIME
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -128,3 +129,5 @@ namespace System.Reflection.Emit {
 		}
 	}
 }
+
+#endif

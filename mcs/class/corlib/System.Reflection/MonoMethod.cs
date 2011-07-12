@@ -33,7 +33,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.Security;
 using System.Threading;
 using System.Text;
@@ -97,12 +99,18 @@ namespace System.Reflection {
 			return get_parameter_info (handle, member);
 		}
 
+#if !FULL_AOT_RUNTIME
 		[MethodImplAttribute(MethodImplOptions.InternalCall)]
 		static extern UnmanagedMarshal get_retval_marshal (IntPtr handle);
+#endif
 
 		static internal ParameterInfo GetReturnParameterInfo (MonoMethod method)
 		{
+#if !FULL_AOT_RUNTIME
 			return new ParameterInfo (GetReturnType (method.mhandle), method, get_retval_marshal (method.mhandle));
+#else
+			return new ParameterInfo (GetReturnType (method.mhandle), method);
+#endif
 		}
 	};
 	
@@ -394,8 +402,10 @@ namespace System.Reflection {
 					hasUserType = true;
 			}
 
+#if !FULL_AOT_RUNTIME
 			if (hasUserType)
 				return new MethodOnTypeBuilderInst (this, methodInstantiation);
+#endif
 
 			MethodInfo ret = MakeGenericMethod_impl (methodInstantiation);
 			if (ret == null)

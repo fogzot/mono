@@ -36,7 +36,9 @@ using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.Threading;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -305,6 +307,7 @@ namespace System {
 			return Activator.CreateComInstanceFrom (assemblyFile, typeName, hashValue ,hashAlgorithm);
 		}
 #endif
+#endif
 
 		public ObjectHandle CreateInstance (string assemblyName, string typeName)
 		{
@@ -457,8 +460,7 @@ namespace System {
 			return (oh != null) ? oh.Unwrap () : null;
 		}
 
-#endif // !NET_2_1
-
+#if !FULL_AOT_RUNTIME
 		public AssemblyBuilder DefineDynamicAssembly (AssemblyName name, AssemblyBuilderAccess access)
 		{
 			return DefineDynamicAssembly (name, access, null, null, null, null, null, false);
@@ -596,6 +598,7 @@ namespace System {
 		{
 			return new AssemblyBuilder (name, null, access, true);
 		}
+#endif
 
 		//
 		// AppDomain.DoCallBack works because AppDomain is a MarshalByRefObject
@@ -1285,9 +1288,11 @@ namespace System {
 
 			string name;
 
+#if !FULL_AOT_RUNTIME
 			if (name_or_tb is TypeBuilder)
 				name = ((TypeBuilder) name_or_tb).FullName;
 			else
+#endif
 				name = (string) name_or_tb;
 
 			/* Prevent infinite recursion */

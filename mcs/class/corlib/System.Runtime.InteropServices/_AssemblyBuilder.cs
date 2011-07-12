@@ -27,6 +27,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+#if !FULL_AOT_RUNTIME
 #if NET_1_1
 
 using System.Reflection.Emit;
@@ -50,4 +51,5 @@ namespace System.Runtime.InteropServices {
 	}
 }
 
+#endif
 #endif

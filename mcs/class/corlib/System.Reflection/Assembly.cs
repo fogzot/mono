@@ -32,7 +32,9 @@ using System.Security.Policy;
 using System.Security.Permissions;
 using System.Runtime.Serialization;
 using System.Reflection;
+#if !FULL_AOT_RUNTIME
 using System.Reflection.Emit;
+#endif
 using System.IO;
 using System.Globalization;
 using System.Runtime.CompilerServices;
