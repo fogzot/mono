@@ -115,7 +115,7 @@ void GC_push_all_stacks() {
 	if(r != KERN_SUCCESS) continue;
 	
 #if defined(I386)
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
+#if defined(MONOTOUCH) || (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 
 	lo = state.__esp;
 
@@ -378,7 +378,7 @@ void GC_push_all_stacks() {
 			     (natural_t *)&info, &outCount);
 	if(r != KERN_SUCCESS) continue;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
+#if defined (MONOTOUCH) || (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 	lo = (void*)info.__esp;
 	hi = (ptr_t)FindTopOfStack(info.__esp);
 
