@@ -62,6 +62,10 @@ no_version_script=no
 # Set to yes if Unix sockets cannot be created in an anonymous namespace
 need_link_unlink=no
 
+AC_ARG_WITH([macversion],
+	[  --with-macversion=<version>    Choose minimum macos version (default to invalid)],
+	[], [with_macversion=invalid])
+
 # Thread configuration inspired by sleepycat's db
 AC_MSG_CHECKING([host platform characteristics])
 libgc_threads=no
@@ -288,9 +292,9 @@ case "$host" in
 		dnl its gcc defaults to 64-bit mode.  They have also deprecated the usage of ucontext
 		dnl we need to set some flags to build our 32-bit binaries on 10.6 properly
 		case "$host" in
-			dnl Snow Leopard and newer config.guess reports as this
+			dnl Snow Leopard config.guess reports as this
 			i*86-*-darwin*)
-				BROKEN_DARWIN_FLAGS="-arch i386 -D_XOPEN_SOURCE -mmacosx-version-min=10.5"
+				BROKEN_DARWIN_FLAGS="-arch i386 -D_XOPEN_SOURCE"
 				CPPFLAGS="$CPPFLAGS $BROKEN_DARWIN_FLAGS"
 				CFLAGS="$CFLAGS $BROKEN_DARWIN_FLAGS"
 				CXXFLAGS="$CXXFLAGS $BROKEN_DARWIN_FLAGS"
@@ -708,7 +712,7 @@ DISABLED_FEATURES=none
 
 AC_ARG_ENABLE(minimal, [  --enable-minimal=LIST      drop support for LIST subsystems.
      LIST is a comma-separated list from: aot, profiler, decimal, pinvoke, debug,
-     reflection_emit, reflection_emit_save, large_code, logging, com, ssa, generics, attach, jit, simd, soft_debug, normalization, assembly_remapping, shared_perfcounters.],
+     reflection_emit, reflection_emit_save, large_code, logging, com, ssa, generics, attach, jit, simd, soft_debug, perfcounters, normalization, assembly_remapping, shared_perfcounters.],
 [
 	for feature in `echo "$enable_minimal" | sed -e "s/,/ /g"`; do
 		eval "mono_feature_disable_$feature='yes'"
@@ -823,6 +827,10 @@ if test "x$mono_feature_disable_soft_debug" = "xyes"; then
 	AC_MSG_NOTICE([Disabled Soft Debugger.])
 fi
 
+if test "x$mono_feature_disable_perfcounters" = "xyes"; then
+	AC_DEFINE(DISABLE_PERFCOUNTERS, 1, [Disable Performance Counters.])
+	AC_MSG_NOTICE([Disabled Performance Counters.])
+fi
 if test "x$mono_feature_disable_normalization" = "xyes"; then
 	AC_DEFINE(DISABLE_NORMALIZATION, 1, [Disable String normalization support.])
 	AC_MSG_NOTICE([Disabled String normalization support.])
@@ -2365,6 +2373,19 @@ esac
 if test "x$host" != "x$target"; then
    AC_DEFINE(MONO_CROSS_COMPILE,1,[The runtime is compiled for cross-compiling mode])
    case "$target" in
+   arm*-darwin*)
+		TARGET=ARM;
+		arch_target=arm;
+		ACCESS_UNALIGNED="no"
+		JIT_SUPPORTED=yes
+		CPPFLAGS="$CPPFLAGS -DARM_FPU_VFP=1 -D__ARM_EABI__ -DHAVE_ARMV6=1"
+		jit_wanted=true
+		# Can't use tls, since it depends on the runtime detection of tls offsets
+		# in mono-compiler.h
+		with_tls=pthread
+
+		AC_DEFINE(MONO_CROSS_COMPILE,1,[The runtime is compiled for cross-compiling mode])
+		;;
    powerpc64-ps3-linux-gnu)
 		TARGET=POWERPC64
 		arch_target=powerpc64
