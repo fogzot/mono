@@ -1159,6 +1159,7 @@ encode_var_location (MonoDwarfWriter *w, MonoInst *ins, guint8 *p, guint8 **endp
 	/* FIXME: This needs a location list, since the args can go from reg->stack */
 	if (!ins || ins->flags & MONO_INST_IS_DEAD) {
 		/* gdb treats this as optimized out */
+		*p ++ = DW_OP_reg0;
 	} else if (ins->opcode == OP_REGVAR) {
 		*p = DW_OP_reg0 + mono_hw_reg_to_dwarf_reg (ins->dreg);
 		p ++;
