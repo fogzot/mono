@@ -377,6 +377,10 @@ static void
 emit_string_symbol (MonoAotCompile *acfg, const char *name, const char *value)
 {
 	img_writer_emit_section_change (acfg->w, RODATA_SECT, 1);
+#ifdef __APPLE__
+	/* On apple, all symbols need to be aligned to avoid warnings from ld */
+	emit_alignment (acfg, 4);
+#endif
 	img_writer_emit_label (acfg->w, name);
 	img_writer_emit_string (acfg->w, value);
 }
@@ -4608,6 +4612,10 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->tool_prefix = g_strdup (arg + strlen ("tool-prefix="));
 		} else if (str_begins_with (arg, "soft-debug")) {
 			opts->soft_debug = TRUE;
+#if defined(TARGET_ARM)
+		} else if (str_begins_with (arg, "iphone-abi")) {
+			// We always use iphone-abi now, but we cannot remove this since older mtouch's still pass it
+#endif
 		} else if (str_begins_with (arg, "print-skipped")) {
 			opts->print_skipped_methods = TRUE;
 		} else if (str_begins_with (arg, "stats")) {
@@ -5187,7 +5195,7 @@ mono_aot_patch_info_dup (MonoJumpInfo* ji)
 static void
 emit_llvm_file (MonoAotCompile *acfg)
 {
-	char *command, *opts;
+	char *command, *opts, *tempbc;
 	int i;
 	MonoJumpInfo *patch_info;
 
@@ -5229,7 +5237,10 @@ emit_llvm_file (MonoAotCompile *acfg)
 	}
 
 
-	mono_llvm_emit_aot_module ("temp.bc", acfg->final_got_size);
+	tempbc = (char *) g_malloc (strlen (acfg->tmpfname) + 4);
+	g_sprintf (tempbc, "%s.bc", acfg->tmpfname);
+	mono_llvm_emit_aot_module (tempbc, acfg->final_got_size);
+	g_free (tempbc);
 
 	/*
 	 * FIXME: Experiment with adding optimizations, the -std-compile-opts set takes
@@ -5248,7 +5259,7 @@ emit_llvm_file (MonoAotCompile *acfg)
 	opts = g_strdup ("-instcombine -simplifycfg");
 	opts = g_strdup ("-simplifycfg -domtree -domfrontier -scalarrepl -instcombine -simplifycfg -domtree -domfrontier -scalarrepl -simplify-libcalls -instcombine -simplifycfg -instcombine -simplifycfg -reassociate -domtree -loops -loopsimplify -domfrontier -loopsimplify -lcssa -loop-rotate -licm -lcssa -loop-unswitch -instcombine -scalar-evolution -loopsimplify -lcssa -iv-users -indvars -loop-deletion -loopsimplify -lcssa -loop-unroll -instcombine -memdep -gvn -memdep -memcpyopt -sccp -instcombine -domtree -memdep -dse -adce -simplifycfg -preverify -domtree -verify");
 #if 1
-	command = g_strdup_printf ("%sopt -f %s -o temp.opt.bc temp.bc", acfg->aot_opts.llvm_path, opts);
+	command = g_strdup_printf ("%sopt -f %s -o %s.opt.bc %s.bc", acfg->aot_opts.llvm_path, opts, acfg->tmpfname, acfg->tmpfname);
 	printf ("Executing opt: %s\n", command);
 	if (system (command) != 0) {
 		exit (1);
@@ -5271,7 +5282,7 @@ emit_llvm_file (MonoAotCompile *acfg)
 		g_string_append_printf (acfg->llc_args, " -relocation-model=pic");
 	unlink (acfg->tmpfname);
 
-	command = g_strdup_printf ("%sllc %s -unwind-tables -disable-gnu-eh-frame -enable-mono-eh-frame -o %s temp.opt.bc", acfg->aot_opts.llvm_path, acfg->llc_args->str, acfg->tmpfname);
+	command = g_strdup_printf ("%sllc %s -unwind-tables -disable-gnu-eh-frame -enable-mono-eh-frame -o %s %s.opt.bc", acfg->aot_opts.llvm_path, acfg->llc_args->str, acfg->tmpfname, acfg->tmpfname);
 
 	printf ("Executing llc: %s\n", command);
 
@@ -6201,6 +6212,9 @@ emit_globals (MonoAotCompile *acfg)
 
 		sprintf (symbol, "name_%d", i);
 		emit_section_change (acfg, RODATA_SECT, 1);
+#ifdef __APPLE__
+		emit_alignment (acfg, 4);
+#endif
 		emit_label (acfg, symbol);
 		emit_string (acfg, name);
 	}
