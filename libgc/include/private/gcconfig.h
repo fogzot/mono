@@ -320,7 +320,9 @@
 #    define mach_type_known
 #    define DARWIN_DONT_PARSE_STACK
 #    define OS_TYPE "DARWIN"
-#    define DYNAMIC_LOADING
+#    if !defined(MONOTOUCH)
+#      define DYNAMIC_LOADING
+#    endif
      /* XXX: see get_end(3), get_etext() and get_end() should not be used.
         These aren't used when dyld support is enabled (it is by default) */
 #    define DATASTART ((ptr_t) get_etext())
