@@ -109,8 +109,8 @@ libMonoPosixHelper_la_LIBADD =			\
 	$(XATTR_LIB)
 
 # libMonoPosixHelper_la_LDFLAGS = -no-undefined -version-info 1:0:1
-libMonoPosixHelper_la_LDFLAGS = -no-undefined -avoid-version
-libMonoSupportW_la_LDFLAGS = -no-undefined -avoid-version
+libMonoPosixHelper_la_LDFLAGS = -undefined suppress -avoid-version
+libMonoSupportW_la_LDFLAGS = -undefined suppress -avoid-version
 
 libMonoSupportW_la_SOURCES =			\
 		supportw.c			\
