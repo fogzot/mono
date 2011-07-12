@@ -4290,10 +4290,18 @@ mono_type_size (MonoType *t, int *align)
 		return 4;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
-		*align = __alignof__(gint64);
+#if defined(TARGET_ARM)
+                *align = 4;
+#else
+                *align = __alignof__(gint64);
+#endif
 		return 8;		
-	case MONO_TYPE_R8:
-		*align = __alignof__(double);
+        case MONO_TYPE_R8:
+#if defined(TARGET_ARM)
+                *align = 4;
+#else
+                *align = __alignof__(double);
+#endif
 		return 8;		
 	case MONO_TYPE_I:
 	case MONO_TYPE_U:
@@ -4416,7 +4424,7 @@ mono_type_stack_size_internal (MonoType *t, int *align, gboolean allow_open)
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
 		*align = __alignof__(gint64);
-		return sizeof (gint64);		
+		return sizeof (gint64);
 	case MONO_TYPE_R8:
 		*align = __alignof__(double);
 		return sizeof (double);
