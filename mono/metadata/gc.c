@@ -705,7 +705,9 @@ alloc_handle (HandleData *handles, MonoObject *obj, gboolean track)
 			mono_gc_weak_link_add (&(handles->entries [slot]), obj, track);
 	}
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_num_handles++;
+#endif
 	unlock_handles (handles);
 	/*g_print ("allocated entry %d of type %d to object %p (in slot: %p)\n", slot, handles->type, obj, handles->entries [slot]);*/
 	res = (slot << 3) | (handles->type + 1);
@@ -913,7 +915,9 @@ mono_gchandle_free (guint32 gchandle)
 	} else {
 		/* print a warning? */
 	}
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_num_handles--;
+#endif
 	/*g_print ("freed entry %d of type %d\n", slot, handles->type);*/
 	unlock_handles (handles);
 	mono_profiler_gc_handle (MONO_PROFILER_GC_HANDLE_DESTROYED, handles->type, gchandle, NULL);
@@ -1130,9 +1134,20 @@ mono_gc_init (void)
 	MONO_SEM_INIT (&finalizer_sem, 0);
 #endif
 
+#if !defined(__APPLE__) || !defined (__arm__)
+	gc_thread = mono_thread_create_internal (mono_domain_get (), finalizer_thread, NULL, FALSE, 0);
+	ves_icall_System_Threading_Thread_SetName_internal (gc_thread, mono_string_new (mono_domain_get (), "Finalizer"));
+#endif
+}
+
+#if defined(__APPLE__) && defined (__arm__)
+void
+mono_gc_init_finalizer_thread (void)
+{
 	gc_thread = mono_thread_create_internal (mono_domain_get (), finalizer_thread, NULL, FALSE, 0);
 	ves_icall_System_Threading_Thread_SetName_internal (gc_thread, mono_string_new (mono_domain_get (), "Finalizer"));
 }
+#endif
 
 void
 mono_gc_cleanup (void)

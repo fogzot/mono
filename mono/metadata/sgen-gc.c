@@ -2980,7 +2980,9 @@ collect_nursery (size_t requested_size)
 	if (disable_minor_collections)
 		return TRUE;
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_collections0++;
+#endif
 
 	current_collection_generation = GENERATION_NURSERY;
 
@@ -3154,7 +3156,9 @@ major_do_collection (const char *reason)
 	char *heap_end = (char*)-1;
 	int old_next_pin_slot;
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_collections1++;
+#endif
 
 	last_collection_old_num_major_sections = major_collector.get_num_major_sections ();
 

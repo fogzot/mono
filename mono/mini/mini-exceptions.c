@@ -1281,7 +1281,9 @@ mono_handle_exception_internal_first_pass (MonoContext *ctx, gpointer obj, gpoin
 
 				if (ei->flags == MONO_EXCEPTION_CLAUSE_FILTER) {
 					gboolean is_user_frame = ji->method->wrapper_type == MONO_WRAPPER_NONE || ji->method->wrapper_type == MONO_WRAPPER_DYNAMIC_METHOD;
+#ifndef DISABLE_PERFCOUNTERS
 					mono_perfcounters->exceptions_filters++;
+#endif
 					mono_debugger_call_exception_handler (ei->data.filter, MONO_CONTEXT_GET_SP (ctx), ex_obj);
 
 					/*
@@ -1638,7 +1640,9 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gpointer origina
 					mono_debugger_call_exception_handler (ei->handler_start, MONO_CONTEXT_GET_SP (ctx), ex_obj);
 					MONO_CONTEXT_SET_IP (ctx, ei->handler_start);
 					*(mono_get_lmf_addr ()) = lmf;
+#ifndef DISABLE_PERFCOUNTERS
 					mono_perfcounters->exceptions_depth += frame_count;
+#endif
 					if (obj == domain->stack_overflow_ex)
 						jit_tls->handling_stack_ovf = FALSE;
 
@@ -1662,7 +1666,9 @@ mono_handle_exception_internal (MonoContext *ctx, gpointer obj, gpointer origina
 					mono_profiler_exception_clause_handler (ji->method, ei->flags, i);
 					jit_tls->orig_ex_ctx_set = FALSE;
 					mono_debugger_call_exception_handler (ei->handler_start, MONO_CONTEXT_GET_SP (ctx), ex_obj);
+#ifndef DISABLE_PERFCOUNTERS
 					mono_perfcounters->exceptions_finallys++;
+#endif
 					*(mono_get_lmf_addr ()) = lmf;
 					if (ji->from_llvm) {
 						/* 
@@ -1816,8 +1822,10 @@ mono_debugger_run_finally (MonoContext *start_ctx)
 gboolean
 mono_handle_exception (MonoContext *ctx, gpointer obj, gpointer original_ip, gboolean test_only)
 {
+#ifndef DISABLE_PERFCOUNTERS
 	if (!test_only)
 		mono_perfcounters->exceptions_thrown++;
+#endif
 
 	g_assert (!test_only);
 	return mono_handle_exception_internal (ctx, obj, original_ip, FALSE, NULL);

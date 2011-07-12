@@ -2626,16 +2626,11 @@ mono_thread_abort (MonoObject *obj)
 			(obj->vtable->klass == mono_defaults.threadabortexception_class)) {
 		mono_thread_exit ();
 	} else {
-		MonoObject *other = NULL;
-		MonoString *str = mono_object_to_string (obj, &other);
-		if (str) {
-			char *msg = mono_string_to_utf8 (str);
-			fprintf (stderr, "[ERROR] FATAL UNHANDLED EXCEPTION: %s\n", msg);
-			fflush (stderr);
-			g_free (msg);
-		}
-
+#if defined(MONOTOUCH) && defined(__arm__)
+		g_assertion_message ("Terminating runtime due to unhandled exception");
+#else
 		exit (mono_environment_exitcode_get ());
+#endif
 	}
 }
 
@@ -4911,8 +4906,10 @@ mini_method_compile (MonoMethod *method, guint32 opts, MonoDomain *domain, gbool
 	}
 
 	/* collect statistics */
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->jit_methods++;
 	mono_perfcounters->jit_bytes += header->code_size;
+#endif
 	mono_jit_stats.allocated_code_size += cfg->code_len;
 	code_size_ratio = cfg->code_len;
 	if (code_size_ratio > mono_jit_stats.biggest_method_size && mono_jit_stats.enabled) {

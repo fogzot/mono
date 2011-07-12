@@ -1231,8 +1231,10 @@ mono_domain_create (void)
 	domain_id_alloc (domain);
 	mono_appdomains_unlock ();
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->loader_appdomains++;
 	mono_perfcounters->loader_total_appdomains++;
+#endif
 
 	mono_debug_domain_create (domain);
 
@@ -1277,7 +1279,9 @@ mono_init_internal (const char *filename, const char *exe_filename, const char *
 #endif
 #endif
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters_init ();
+#endif
 
 	mono_counters_register ("Max native code in a domain", MONO_COUNTER_INT|MONO_COUNTER_JIT, &max_domain_code_size);
 	mono_counters_register ("Max code space allocated in a domain", MONO_COUNTER_INT|MONO_COUNTER_JIT, &max_domain_code_alloc);
@@ -1709,23 +1713,23 @@ mono_init_com_types (void)
 
 	mono_defaults.variant_class = mono_class_from_name (
 	        mono_defaults.corlib, "System", "Variant");
-	g_assert (mono_defaults.variant_class != 0);
+//	g_assert (mono_defaults.variant_class != 0);
 
 	mono_defaults.com_object_class = mono_class_from_name (
 	        mono_defaults.corlib, "System", "__ComObject");
-	g_assert (mono_defaults.com_object_class != 0);
+//	g_assert (mono_defaults.com_object_class != 0);
 
 	mono_defaults.com_interop_proxy_class = mono_class_from_name (
 	        mono_defaults.corlib, "Mono.Interop", "ComInteropProxy");
-	g_assert (mono_defaults.com_interop_proxy_class != 0);
+//	g_assert (mono_defaults.com_interop_proxy_class != 0);
 
 	mono_defaults.iunknown_class = mono_class_from_name (
 	        mono_defaults.corlib, "Mono.Interop", "IUnknown");
-	g_assert (mono_defaults.iunknown_class != 0);
+//	g_assert (mono_defaults.iunknown_class != 0);
 
 	mono_defaults.idispatch_class = mono_class_from_name (
 	        mono_defaults.corlib, "Mono.Interop", "IDispatch");
-	g_assert (mono_defaults.idispatch_class != 0);
+//	g_assert (mono_defaults.idispatch_class != 0);
 
 	initialized = TRUE;
 }
@@ -2046,7 +2050,9 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 	mono_mempool_invalidate (domain->mp);
 	mono_code_manager_invalidate (domain->code_mp);
 #else
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->loader_bytes -= mono_mempool_get_allocated (domain->mp);
+#endif
 	mono_mempool_destroy (domain->mp);
 	domain->mp = NULL;
 	mono_code_manager_destroy (domain->code_mp);
@@ -2086,7 +2092,9 @@ mono_domain_free (MonoDomain *domain, gboolean force)
 
 	mono_gc_free_fixed (domain);
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->loader_appdomains--;
+#endif
 
 	if ((domain == mono_root_domain))
 		mono_root_domain = NULL;
@@ -2130,7 +2138,9 @@ mono_domain_alloc (MonoDomain *domain, guint size)
 	gpointer res;
 
 	mono_domain_lock (domain);
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->loader_bytes += size;
+#endif
 	res = mono_mempool_alloc (domain->mp, size);
 	mono_domain_unlock (domain);
 
@@ -2148,7 +2158,9 @@ mono_domain_alloc0 (MonoDomain *domain, guint size)
 	gpointer res;
 
 	mono_domain_lock (domain);
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->loader_bytes += size;
+#endif
 	res = mono_mempool_alloc0 (domain->mp, size);
 	mono_domain_unlock (domain);
 

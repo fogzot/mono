@@ -186,7 +186,9 @@ mono_gc_collect (int generation)
 {
 	MONO_PROBE_GC_BEGIN (generation);
 
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_induced++;
+#endif
 	GC_gcollect ();
 	
 	MONO_PROBE_GC_END (generation);
@@ -375,16 +377,20 @@ static void
 on_gc_notification (GCEventType event)
 {
 	if (event == MONO_GC_EVENT_START) {
+#ifndef DISABLE_PERFCOUNTERS
 		mono_perfcounters->gc_collections0++;
+#endif
 		mono_stats.major_gc_count ++;
 		gc_start_time = mono_100ns_ticks ();
 	} else if (event == MONO_GC_EVENT_END) {
 		guint64 heap_size = GC_get_heap_size ();
 		guint64 used_size = heap_size - GC_get_free_bytes ();
+#ifndef DISABLE_PERFCOUNTERS
 		mono_perfcounters->gc_total_bytes = used_size;
 		mono_perfcounters->gc_committed_bytes = heap_size;
 		mono_perfcounters->gc_reserved_bytes = heap_size;
 		mono_perfcounters->gc_gen0size = heap_size;
+#endif
 		mono_stats.major_gc_time_usecs += (mono_100ns_ticks () - gc_start_time) / 10;
 		mono_trace_message (MONO_TRACE_GC, "gc took %d usecs", (mono_100ns_ticks () - gc_start_time) / 10);
 	}
@@ -395,9 +401,11 @@ static void
 on_gc_heap_resize (size_t new_size)
 {
 	guint64 heap_size = GC_get_heap_size ();
+#ifndef DISABLE_PERFCOUNTERS
 	mono_perfcounters->gc_committed_bytes = heap_size;
 	mono_perfcounters->gc_reserved_bytes = heap_size;
 	mono_perfcounters->gc_gen0size = heap_size;
+#endif
 	mono_profiler_gc_heap_resize (new_size);
 }
 

@@ -671,7 +671,9 @@ threadpool_start_idle_threads (ThreadPool *tp)
 			if (InterlockedCompareExchange (&tp->nthreads, n + 1, n) == n)
 				break;
 		}
+#ifndef DISABLE_PERFCOUNTERS
 		mono_perfcounter_update_value (tp->pc_nthreads, TRUE, 1);
+#endif
 		mono_thread_create_internal (mono_get_root_domain (), tp->async_invoke, tp, TRUE, stack_size);
 		SleepEx (100, TRUE);
 	} while (1);
@@ -688,6 +690,7 @@ threadpool_init (ThreadPool *tp, int min_threads, int max_threads, void (*async_
 	MONO_SEM_INIT (&tp->new_job, 0);
 }
 
+#ifndef DISABLE_PERFCOUNTERS
 static void *
 init_perf_counter (const char *category, const char *counter)
 {
@@ -706,6 +709,7 @@ init_perf_counter (const char *category, const char *counter)
 	machine = mono_string_new (root, ".");
 	return mono_perfcounter_get_impl (category_str, counter_str, NULL, machine, &type, &custom);
 }
+#endif
 
 #ifdef DEBUG
 static void
@@ -844,6 +848,7 @@ mono_thread_pool_init ()
 	wsqs = g_ptr_array_sized_new (MAX (100 * cpu_count, thread_count));
 	mono_wsq_init ();
 
+#ifndef DISABLE_PERFCOUNTERS
 	async_tp.pc_nitems = init_perf_counter ("Mono Threadpool", "Work Items Added");
 	g_assert (async_tp.pc_nitems);
 
@@ -855,6 +860,7 @@ mono_thread_pool_init ()
 
 	async_io_tp.pc_nthreads = init_perf_counter ("Mono Threadpool", "# of IO Threads");
 	g_assert (async_io_tp.pc_nthreads);
+#endif
 	tp_inited = 2;
 #ifdef DEBUG
 	signal (SIGALRM, signal_handler);
@@ -1007,7 +1013,9 @@ threadpool_start_thread (ThreadPool *tp)
 	stack_size = (!tp->is_io) ? 0 : SMALL_STACK;
 	while (!mono_runtime_is_shutting_down () && (n = tp->nthreads) < tp->max_threads) {
 		if (InterlockedCompareExchange (&tp->nthreads, n + 1, n) == n) {
+#ifndef DISABLE_PERFCOUNTERS
 			mono_perfcounter_update_value (tp->pc_nthreads, TRUE, 1);
+#endif
 			mono_thread_create_internal (mono_get_root_domain (), tp->async_invoke, tp, TRUE, stack_size);
 			return TRUE;
 		}
@@ -1063,7 +1071,9 @@ threadpool_append_jobs (ThreadPool *tp, MonoObject **jobs, gint njobs)
 			o->add_time = mono_100ns_ticks ();
 		}
 		threadpool_jobs_inc (ar); 
+#ifndef DISABLE_PERFCOUNTERS
 		mono_perfcounter_update_value (tp->pc_nitems, TRUE, 1);
+#endif
 		if (!tp->is_io && mono_wsq_local_push (ar))
 			continue;
 
@@ -1506,7 +1516,9 @@ async_invoke_thread (gpointer data)
 				if (!down && nt <= tp->min_threads)
 					break;
 				if (down || InterlockedCompareExchange (&tp->nthreads, nt - 1, nt) == nt) {
+#ifndef DISABLE_PERFCOUNTERS
 					mono_perfcounter_update_value (tp->pc_nthreads, TRUE, -1);
+#endif
 					if (!tp->is_io) {
 						remove_wsq (wsq);
 					}
