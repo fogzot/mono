@@ -8,7 +8,7 @@
  */
 
 #include <config.h>
-#if defined(__MACH__)
+#if defined(__MACH__) && !defined(__arm__)
 #include <glib.h>
 #include <mach/mach.h>
 #include <mach/task.h>

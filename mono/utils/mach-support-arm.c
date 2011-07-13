@@ -21,43 +21,64 @@
 void *
 mono_mach_arch_get_ip (thread_state_t state)
 {
+#if !defined(MONO_CROSS_COMPILE)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
 	return (void *) arch_state->__pc;
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 void *
 mono_mach_arch_get_sp (thread_state_t state)
 {
+#if !defined(MONO_CROSS_COMPILE)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 
 	return (void *) arch_state->__sp;
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 int
 mono_mach_arch_get_mcontext_size ()
 {
+#if !defined(MONO_CROSS_COMPILE)
 	return sizeof (struct __darwin_mcontext);
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 void
-mono_mach_arch_thread_state_to_mcontext (thread_state_t state, mcontext_t context)
+mono_mach_arch_thread_state_to_mcontext (thread_state_t state, void *context)
 {
+#if !defined(MONO_CROSS_COMPILE)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 	struct __darwin_mcontext *ctx = (struct __darwin_mcontext *) context;
 
 	ctx->__ss = *arch_state;
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 int
 mono_mach_arch_get_thread_state_size ()
 {
+#if !defined(MONO_CROSS_COMPILE)
 	return sizeof (arm_thread_state_t);
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 kern_return_t
 mono_mach_arch_get_thread_state (thread_port_t thread, thread_state_t state, mach_msg_type_number_t *count)
 {
+#if !defined(MONO_CROSS_COMPILE)
 	arm_thread_state_t *arch_state = (arm_thread_state_t *) state;
 	kern_return_t ret;
 
@@ -66,11 +87,15 @@ mono_mach_arch_get_thread_state (thread_port_t thread, thread_state_t state, mac
 	ret = thread_get_state (thread, ARM_THREAD_STATE_COUNT, (thread_state_t) arch_state, count);
 
 	return ret;
+#else
+	g_assert_not_reached ();
+#endif
 }
 
 void *
 mono_mach_arch_get_tls_value_from_thread (pthread_t thread, guint32 key)
 {
+#if !defined(MONO_CROSS_COMPILE)
 	/* OSX stores TLS values in a hidden array inside the pthread_t structure
 	 * They are keyed off a giant array offset 0x48 into the pointer.  This value
 	 * is baked into their pthread_getspecific implementation
@@ -79,5 +104,8 @@ mono_mach_arch_get_tls_value_from_thread (pthread_t thread, guint32 key)
 	intptr_t **tsd = (intptr_t **) ((char*)p + 0x48 + (key << 2));
 
 	return (void *) *tsd;
+#else
+	g_assert_not_reached ();
+#endif
 }
 #endif
