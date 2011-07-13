@@ -503,7 +503,7 @@ endif
 if PLATFORM_DARWIN
 os_sources = $(darwin_sources) $(posix_sources)
 #monobin_platform_ldflags=-sectcreate __TEXT __info_plist $(top_srcdir)/mono/mini/Info.plist -framework CoreFoundation
-monobin_platform_ldflags=-framework CoreFoundation
+monobin_platform_ldflags=-framework CoreFoundation -framework IOKit -framework Foundation
 endif
 
 libmono_2_0_la_SOURCES = $(common_sources) $(llvm_sources) $(arch_sources) $(os_sources)
