@@ -79,10 +79,12 @@
  * a dummy Mach exception handler.
  */
 
+#if !defined(__arm__)
 /*
  * http://darwinsource.opendarwin.org/10.4.3/xnu-792.6.22/osfmk/man/exc_server.html
  */
 extern boolean_t exc_server (mach_msg_header_t *request_msg, mach_msg_header_t *reply_msg);
+#endif
 
 /*
  * The exception message
@@ -95,6 +97,7 @@ typedef struct {
 /* The exception port */
 static mach_port_t mach_exception_port = VM_MAP_NULL;
 
+#if !defined(__arm__)
 /*
  * Implicitly called by exc_server. Must be public.
  *
@@ -190,6 +193,7 @@ macosx_register_exception_handler ()
 
 	mono_gc_register_mach_exception_thread (thread);
 }
+#endif
 
 #endif
 
@@ -199,7 +203,7 @@ macosx_register_exception_handler ()
 void
 mono_runtime_install_handlers (void)
 {
-#ifdef NEEDS_EXCEPTION_THREAD
+#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_5) && !defined (__arm__)
 	macosx_register_exception_handler ();
 #endif
 	mono_runtime_posix_install_handlers ();
