@@ -28,7 +28,17 @@
 
 #include <mono/utils/mono-sigcontext.h>
 
-#ifdef __i386__
+#if defined(MONO_CROSS_COMPILE)
+
+#define REDZONE_SIZE	0
+
+#define ARCH_NUM_REGS 0
+#define ARCH_STORE_REGS(ptr)
+#define ARCH_SIGCTX_SP(ctx) NULL
+#define ARCH_SIGCTX_IP(ctx) NULL
+#define ARCH_COPY_SIGCTX_REGS(a,ctx)
+
+#elif defined(TARGET_X86)
 
 #define REDZONE_SIZE	0
 
@@ -57,7 +67,7 @@
 	(a)[6] = (gpointer) UCONTEXT_REG_EBP ((ctx));		\
 	} while (0)
 
-#elif defined(__x86_64__)
+#elif defined(TARGET_AMD64)
 
 #define REDZONE_SIZE	128
 
@@ -102,7 +112,7 @@
 	((a)[14] = (gpointer) (UCONTEXT_REG_R15 (ctx)));	\
 	} while (0)
 
-#elif defined(__ppc__)
+#elif defined(TARGET_PPC)
 
 #define REDZONE_SIZE	224
 
@@ -130,7 +140,7 @@
 		((a)[__i]) = UCONTEXT_REG_Rn((ctx), __i);	\
 	} while (0)
 
-#elif defined(__arm__)
+#elif defined(TARGET_ARM)
 
 #define REDZONE_SIZE	0
 
