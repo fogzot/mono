@@ -5379,9 +5379,11 @@ vm_commands (int command, int id, guint8 *p, guint8 *end, Buffer *buf)
 		suspend_vm ();
 		wait_for_suspend ();
 
+#if !defined (MONOTOUCH)
 		env_class = mono_class_from_name (mono_defaults.corlib, "System", "Environment");
 		if (env_class)
 			exit_method = mono_class_get_method_from_name (env_class, "Exit", 1);
+#endif
 
 		mono_loader_lock ();
 		thread = mono_g_hash_table_find (tid_to_thread, is_really_suspended, NULL);
