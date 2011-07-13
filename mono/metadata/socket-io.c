@@ -666,14 +666,17 @@ static MonoImage *get_socket_assembly (void)
 	static gboolean moonlight;
 	MonoDomain *domain = mono_domain_get ();
 	
+#if 0
 	if (version == NULL) {
 		version = mono_get_runtime_info ()->framework_version;
 		moonlight = !strcmp (version, "2.1");
 	}
+#endif
 	
 	if (domain->socket_assembly == NULL) {
 		MonoImage *socket_assembly;
 
+#if 0
 		if (moonlight) {
 			socket_assembly = mono_image_loaded ("System.Net");
 			if (!socket_assembly) {
@@ -686,6 +689,7 @@ static MonoImage *get_socket_assembly (void)
 				}
 			}
 		} else {
+#endif
 			socket_assembly = mono_image_loaded ("System");
 			if (!socket_assembly) {
 				MonoAssembly *sa = mono_assembly_open ("System.dll", NULL);
@@ -696,8 +700,9 @@ static MonoImage *get_socket_assembly (void)
 					socket_assembly = mono_assembly_get_image (sa);
 				}
 			}
+#if 0
 		}
-
+#endif
 		domain->socket_assembly = socket_assembly;
 	}
 	
