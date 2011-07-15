@@ -2626,11 +2626,11 @@ mono_thread_abort (MonoObject *obj)
 			(obj->vtable->klass == mono_defaults.threadabortexception_class)) {
 		mono_thread_exit ();
 	} else {
-		MonoException *other = NULL;
+		MonoObject *other = NULL;
 		MonoString *str = mono_object_to_string (obj, &other);
 		if (str) {
 			char *msg = mono_string_to_utf8 (str);
-			printf (stderr, "[ERROR] FATAL UNHANDLED EXCEPTION: %s\n", msg);
+			fprintf (stderr, "[ERROR] FATAL UNHANDLED EXCEPTION: %s\n", msg);
 			fflush (stderr);
 			g_free (msg);
 		}
