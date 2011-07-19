@@ -347,7 +347,7 @@ namespace Mono.Security.Cryptography {
 			if (oid != null)
 			{
 				ASN1 digestAlgorithm = new ASN1 (0x30);
-				digestAlgorithm.Add (new ASN1 (CryptoConfigHelper.EncodeOID (oid)));
+				digestAlgorithm.Add (new ASN1 (CryptoConfig.EncodeOID (oid)));
 				digestAlgorithm.Add (new ASN1 (0x05));		// NULL
 				ASN1 digest = new ASN1 (0x04, hashValue);
 				ASN1 digestInfo = new ASN1 (0x30);

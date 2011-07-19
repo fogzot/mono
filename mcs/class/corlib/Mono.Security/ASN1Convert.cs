@@ -99,7 +99,7 @@ namespace Mono.Security {
 			if (oid == null)
 				throw new ArgumentNullException ("oid");
 
-			return new ASN1 (CryptoConfigHelper.EncodeOID (oid));
+			return new ASN1 (CryptoConfig.EncodeOID (oid));
 		}
 
 		static public ASN1 FromUnsignedBigInteger (byte[] big) 
