@@ -235,7 +235,7 @@ static inline void get_shpos () {
 		ch3 = H3 ();
 	shpos += validate_hash (c, ch3);
 
-	shpos -= (d[0] < MT_PRODUCT_VERSION ? 7 : 0);
+	shpos -= (d[0] < XAMARIN_PRODUCT_VERSION ? 7 : 0);
 }
 #else
 static int shpos = 0;

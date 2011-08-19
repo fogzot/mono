@@ -207,7 +207,7 @@ static inline bool VerifyEntitlement () {
 
 	free (ch);
 
-	if (d[0] < MT_PRODUCT_VERSION)
+	if (d[0] < XAMARIN_PRODUCT_VERSION)
 		return false;
 
 	return true;
