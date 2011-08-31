@@ -383,7 +383,7 @@ namespace System.Threading.Tasks
 				try {
 					InnerInvoke ();
 				} catch (OperationCanceledException oce) {
-					if (oce.CancellationToken == token)
+					if (token != CancellationToken.None && oce.CancellationToken == token)
 						CancelReal ();
 					else
 						HandleGenericException (oce);
@@ -735,6 +735,9 @@ namespace System.Threading.Tasks
 		
 		protected virtual void Dispose (bool disposing)
 		{
+			if (!IsCompleted)
+				throw new InvalidOperationException ("A task may only be disposed if it is in a completion state");
+
 			// Set action to null so that the GC can collect the delegate and thus
 			// any big object references that the user might have captured in a anonymous method
 			if (disposing) {
