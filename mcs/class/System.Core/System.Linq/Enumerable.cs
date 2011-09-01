@@ -45,7 +45,7 @@ namespace System.Linq
 			Throw
 		}
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 		static class PredicateOf<T> {
 			public static readonly Func<T, bool> Always = (t) => true;
 		}
@@ -851,7 +851,7 @@ namespace System.Linq
 		{
 			Check.Source (source);
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 			return source.First (PredicateOf<TSource>.Always, Fallback.Default);
 #else
 			return source.First (delegate { return true; }, Fallback.Default);
@@ -1214,7 +1214,7 @@ namespace System.Linq
 			if (list != null)
 				return list [list.Count - 1];
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 			return source.Last (PredicateOf<TSource>.Always, Fallback.Throw);
 #else
 			return source.Last (delegate { return true; }, Fallback.Throw);
@@ -1240,7 +1240,7 @@ namespace System.Linq
 			if (list != null)
 				return list.Count > 0 ? list [list.Count - 1] : default (TSource);
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 			return source.Last (PredicateOf<TSource>.Always, Fallback.Default);
 #else
 			return source.Last (delegate { return true; }, Fallback.Default);
@@ -2357,7 +2357,7 @@ namespace System.Linq
 		{
 			Check.Source (source);
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 			return source.Single (PredicateOf<TSource>.Always, Fallback.Throw);
 #else
 			return source.Single (delegate { return true; }, Fallback.Throw);
@@ -2379,7 +2379,7 @@ namespace System.Linq
 		{
 			Check.Source (source);
 
-#if !FULL_AOT_RUNTIME
+#if !MONOTOUCH
 			return source.Single (PredicateOf<TSource>.Always, Fallback.Default);
 #else
 			return source.Single (delegate { return true; }, Fallback.Default);
