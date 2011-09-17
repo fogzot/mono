@@ -38,6 +38,9 @@ moon-do-basic-clean:
 	cd $(mcs_topdir)/tools/tuner && $(MAKE) PROFILE=basic clean
 endif
 
+if ONLY_MONOTOUCH
+build_profiles = monotouch
+else
 if ONLY_MOONLIGHT
 build_profiles = moonlight_raw
 test_profiles = moonlight_raw
@@ -74,6 +77,7 @@ if INSTALL_MONOTOUCH
 build_profiles += monotouch
 endif
 
+endif
 endif
 
 if BUILD_MCS
