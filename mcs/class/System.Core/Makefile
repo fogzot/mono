@@ -14,6 +14,10 @@ ifeq (2.1, $(FRAMEWORK_VERSION))
 LIB_MCS_FLAGS += -d:CODEPLEX_40 -d:SILVERLIGHT
 endif
 
+ifeq (monotouch, $(PROFILE))
+LIB_MCS_FLAGS += -d:FULL_AOT_RUNTIME
+endif
+
 ifeq (4.0, $(FRAMEWORK_VERSION))
 LIB_MCS_FLAGS += -d:CODEPLEX_40
 endif

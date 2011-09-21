@@ -35,6 +35,9 @@ ifeq (moonlight_raw, $(PROFILE))
 LIB_MCS_FLAGS += -d:SECURITY_DEP
 endif
 endif
+ifeq (monotouch, $(PROFILE))
+LIB_MCS_FLAGS += -d:FULL_AOT_RUNTIME
+endif
 
 EXTRA_DISTFILES = \
 	System.Text.RegularExpressions/notes.txt	\
