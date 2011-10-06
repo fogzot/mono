@@ -2815,6 +2815,9 @@ AC_SUBST(OPROFILE_LIBS)
 libmono_ldflags="$libmono_ldflags $LIBS"
 
 AM_CONDITIONAL(MOONLIGHT, [test "x$with_moonlight" != "xno"])
+AM_CONDITIONAL(MONOTOUCH, [test "x$with_monotouch" != "xno"])
+AM_CONDITIONAL(MONODROID, [test "x$with_monodroid" != "xno"])
+
 AM_CONDITIONAL(ONLY_MOONLIGHT, [test "x$with_moonlight" = "xonly"])
 AM_CONDITIONAL(MOONLIGHT_BOEHM, [test "x$with_moon_gc" = "xboehm"])
 AM_CONDITIONAL(MOONLIGHT_SGEN, [test "x$with_moon_gc" = "xsgen"])
