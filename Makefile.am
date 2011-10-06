@@ -109,7 +109,7 @@ moon-do-clean:
 
 endif
 
-if MONOTOUCH
+if INSTALL_MONOTOUCH
 monotouch-do-build: config.h
 	@list='$(MONOTOUCH_SUBDIRS)'; for subdir in $$list; do \
 	  case "x$$subdir" in \

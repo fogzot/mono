@@ -2815,16 +2815,14 @@ AC_SUBST(OPROFILE_LIBS)
 libmono_ldflags="$libmono_ldflags $LIBS"
 
 AM_CONDITIONAL(MOONLIGHT, [test "x$with_moonlight" != "xno"])
-AM_CONDITIONAL(MONOTOUCH, [test "x$with_monotouch" != "xno"])
-AM_CONDITIONAL(MONODROID, [test "x$with_monodroid" != "xno"])
 
 AM_CONDITIONAL(ONLY_MOONLIGHT, [test "x$with_moonlight" = "xonly"])
 AM_CONDITIONAL(MOONLIGHT_BOEHM, [test "x$with_moon_gc" = "xboehm"])
 AM_CONDITIONAL(MOONLIGHT_SGEN, [test "x$with_moon_gc" = "xsgen"])
 
 AM_CONDITIONAL(INSTALL_4_0, [test "x$with_profile4" = xyes])
-AM_CONDITIONAL(INSTALL_MONODROID, [test "x$with_monodroid" = xyes])
-AM_CONDITIONAL(INSTALL_MONOTOUCH, [test "x$with_monotouch" = xyes])
+AM_CONDITIONAL(INSTALL_MONODROID, [test "x$with_monodroid" != "xno"])
+AM_CONDITIONAL(INSTALL_MONOTOUCH, [test "x$with_monotouch" != "xno"])
 AM_CONDITIONAL(ONLY_MONOTOUCH, [test "x$with_monotouch" = "xonly"])
 
 AM_CONDITIONAL(MIPS_GCC, test ${TARGET}${ac_cv_prog_gcc} = MIPSyes)
