@@ -144,6 +144,7 @@ mobile_dirs := \
 	System.Transactions	\
 	System.Data	\
 	Mono.Cairo	\
+	System.Numerics	\
 	Mono.Data.Sqlite	\
 	System.Data.Services.Client
 
