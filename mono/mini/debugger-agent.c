@@ -318,7 +318,8 @@ typedef enum {
 	MOD_KIND_EXCEPTION_ONLY = 8,
 	MOD_KIND_STEP = 10,
 	MOD_KIND_ASSEMBLY_ONLY = 11,
-	MOD_KIND_SOURCE_FILE_ONLY = 12
+	MOD_KIND_SOURCE_FILE_ONLY = 12,
+	MOD_KIND_TYPE_NAME_ONLY = 13
 } ModifierKind;
 
 typedef enum {
@@ -478,6 +479,7 @@ typedef struct {
 		MonoClass *exc_class; /* For kind == MONO_KIND_EXCEPTION_ONLY */
 		MonoAssembly **assemblies; /* For kind == MONO_KIND_ASSEMBLY_ONLY */
 		GHashTable *source_files; /* For kind == MONO_KIND_SOURCE_FILE_ONLY */
+		GHashTable *type_names; /* For kind == MONO_KIND_TYPE_NAME_ONLY */
 	} data;
 	gboolean caught, uncaught; /* For kind == MOD_KIND_EXCEPTION_ONLY */
 } Modifier;
@@ -2876,6 +2878,13 @@ create_event_list (EventKind event, GPtrArray *reqs, MonoJitInfo *ji, EventInfo 
 					}
 					if (!found)
 						filtered = TRUE;
+				} else if (mod->kind == MOD_KIND_TYPE_NAME_ONLY && ei && ei->klass) {
+					char *s;
+
+					s = mono_type_full_name (&ei->klass->byval_arg);
+					if (!g_hash_table_lookup (mod->data.type_names, s))
+						filtered = TRUE;
+					g_free (s);
 				}
 			}
 
@@ -5841,6 +5850,18 @@ event_commands (int command, guint8 *p, guint8 *end, Buffer *buf)
 
 					if (s)
 						g_hash_table_insert (modifier->data.source_files, s, s);
+				}
+			} else if (mod == MOD_KIND_TYPE_NAME_ONLY) {
+				int n = decode_int (p, &p, end);
+				int j;
+
+				modifier = &req->modifiers [i];
+				modifier->data.type_names = g_hash_table_new (g_str_hash, g_str_equal);
+				for (j = 0; j < n; ++j) {
+					char *s = decode_string (p, &p, end);
+
+					if (s)
+						g_hash_table_insert (modifier->data.type_names, s, s);
 				}
 			} else {
 				g_free (req);
