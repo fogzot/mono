@@ -1295,6 +1295,12 @@ static DebuggerTransport *transport;
 static DebuggerTransport transports [MAX_TRANSPORTS];
 static int ntransports;
 
+void
+mono_debugger_agent_register_transport (DebuggerTransport *trans)
+{
+	register_transport (trans);
+}
+
 static void
 register_transport (DebuggerTransport *trans)
 {
@@ -1355,6 +1361,12 @@ static int
 transport_recv (void *buf, int len)
 {
 	return transport->recv (buf, len);
+}
+
+gboolean
+mono_debugger_agent_transport_handshake (void)
+{
+	return transport_handshake ();
 }
 
 static gboolean
