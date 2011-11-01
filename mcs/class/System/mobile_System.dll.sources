@@ -3,6 +3,8 @@
 ../../build/common/MonoTODOAttribute.cs
 ../corlib/System.Collections.Generic/CollectionDebuggerView.cs
 ../corlib/System.Collections/CollectionDebuggerView.cs
+../corlib/System.Threading.Tasks/CyclicDeque.cs
+../corlib/System.Threading/AtomicBoolean.cs
 Assembly/AssemblyInfo.cs
 Mono.Http/NtlmClient.cs
 System.CodeDom.Compiler/GeneratedCodeAttribute.cs
@@ -14,6 +16,8 @@ System.Collections.Generic/RBTree.cs
 System.Collections.Generic/SortedDictionary.cs
 System.Collections.Generic/SortedList.cs
 System.Collections.Generic/Stack.cs
+System.Collections.Concurrent/BlockingCollection.cs
+System.Collections.Concurrent/ConcurrentBag.cs
 System.Collections.ObjectModel/ObservableCollection.cs
 System.Collections.ObjectModel/ReadOnlyObservableCollection.cs
 System.Collections.Specialized/BitVector32.cs
@@ -511,6 +515,8 @@ System.Text.RegularExpressions/parser.cs
 System.Text.RegularExpressions/quicksearch.cs
 System.Text.RegularExpressions/replace.cs
 System.Text.RegularExpressions/syntax.cs
+System.Threading/Barrier.cs
+System.Threading/BarrierPostPhaseException.cs
 System.Threading/Semaphore.cs
 System.Threading/SemaphoreFullException.cs
 System.Threading/ThreadExceptionEventArgs.cs

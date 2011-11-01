@@ -24,7 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#if NET_4_0
+#if NET_4_0 || MOBILE
 using System;
 using System.Threading;
 using System.Collections;
@@ -69,7 +69,7 @@ namespace System.Linq.Parallel.QueryNodes
 
 		internal IEnumerable<IGrouping<TKey, TElement>> GetGroupedElements ()
 		{
-			return GetStore ().Select ((e) => new ConcurrentGrouping<TKey, TElement> (e.Key, e.Value));
+			return (IEnumerable<System.Linq.IGrouping<TKey,TElement>>) GetStore ().Select ((e) => new ConcurrentGrouping<TKey, TElement> (e.Key, e.Value));
 		}
 
 		internal ConcurrentDictionary<TKey, ConcurrentQueue<TElement>> GetStore ()
