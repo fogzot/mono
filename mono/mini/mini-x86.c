@@ -2214,6 +2214,8 @@ mono_x86_have_tls_get (void)
 	inited = TRUE;
 
 	return have_tls_get;
+#elif defined(TARGET_ANDROID)
+	return FALSE;
 #else
 	return TRUE;
 #endif
