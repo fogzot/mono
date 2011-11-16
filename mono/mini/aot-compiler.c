@@ -7038,7 +7038,11 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 			if (COMPILE_LLVM (cfg))
 				cfg->asm_symbol = g_strdup_printf ("%s%s", acfg->llvm_label_prefix, cfg->llvm_method_name);
 			else
+#ifdef MONOTOUCH
+				cfg->asm_symbol = g_strdup_printf ("%sm_%x", acfg->llvm_label_prefix, method_index);
+#else
 				cfg->asm_symbol = g_strdup_printf ("%s%sm_%x", acfg->temp_prefix, acfg->llvm_label_prefix, method_index);
+#endif
 		}
 	}
 
