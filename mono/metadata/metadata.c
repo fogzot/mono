@@ -4290,14 +4290,14 @@ mono_type_size (MonoType *t, int *align)
 		return 4;
 	case MONO_TYPE_I8:
 	case MONO_TYPE_U8:
-#if defined(TARGET_ARM)
+#if defined(TARGET_ARM) && defined (APPLE)
                 *align = 4;
 #else
                 *align = __alignof__(gint64);
 #endif
 		return 8;		
         case MONO_TYPE_R8:
-#if defined(TARGET_ARM)
+#if defined(TARGET_ARM) && defined (APPLE)
                 *align = 4;
 #else
                 *align = __alignof__(double);
