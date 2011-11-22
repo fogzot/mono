@@ -188,7 +188,10 @@ typedef struct MonoAotCompile {
 	GString *llc_args;
 	GString *as_args;
 	char *assembly_name_sym;
-	gboolean thumb_mixed, need_no_dead_strip, need_pt_gnu_stack, direct_method_addresses;
+	gboolean thumb_mixed, need_no_dead_strip, need_pt_gnu_stack;
+#ifdef MONOTOUCH
+	gboolean direct_method_addresses;
+#endif
 } MonoAotCompile;
 
 typedef struct {
@@ -5412,6 +5415,7 @@ emit_code (MonoAotCompile *acfg)
 		}
 	}
 
+#ifdef MONOTOUCH
 	if (acfg->direct_method_addresses) {
 		acfg->flags |= MONO_AOT_FILE_FLAG_DIRECT_METHOD_ADDRESSES;
 
@@ -5450,7 +5454,23 @@ emit_code (MonoAotCompile *acfg)
 			}
 		}
 	}
+#else
+	sprintf (symbol, "code_offsets");
+	emit_section_change (acfg, RODATA_SECT, 1);
+	emit_alignment (acfg, 8);
+	emit_label (acfg, symbol);
 
+	acfg->stats.offsets_size += acfg->nmethods * 4;
+
+	sprintf (end_symbol, "methods");
+	for (i = 0; i < acfg->nmethods; ++i) {
+		if (acfg->cfgs [i]) {
+			emit_symbol_diff (acfg, acfg->cfgs [i]->asm_symbol, end_symbol, 0);
+		} else {
+			emit_int32 (acfg, 0xffffffff);
+		}
+	}
+#endif
 	emit_line (acfg);
 }
 
