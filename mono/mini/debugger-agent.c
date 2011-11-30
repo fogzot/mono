@@ -75,6 +75,7 @@ int WSAAPI getnameinfo(const struct sockaddr*,socklen_t,char*,DWORD,
 #include <mono/metadata/assembly.h>
 #include <mono/utils/mono-semaphore.h>
 #include <mono/utils/mono-error-internals.h>
+#include <mono/utils/mono-sigcontext.h>
 #include "debugger-agent.h"
 #include "mini.h"
 
@@ -4128,6 +4129,17 @@ resume_from_signal_handler (void *sigctx, void *func)
 	MONO_CONTEXT_SET_IP (&ctx, func);
 #endif
 	mono_arch_monoctx_to_sigctx (&ctx, sigctx);
+
+#ifdef TARGET_ARM
+#ifdef UCONTEXT_REG_CPSR
+	if ((gsize)UCONTEXT_REG_PC (sigctx) & 1)
+		/* Transition to thumb */
+		UCONTEXT_REG_CPSR (sigctx) |= (1 << 5);
+	else
+		/* Transition to ARM */
+		UCONTEXT_REG_CPSR (sigctx) &= ~(1 << 5);
+#endif
+#endif
 
 #ifdef PPC_USES_FUNCTION_DESCRIPTOR
 	mono_ppc_set_func_into_sigctx (sigctx, func);
