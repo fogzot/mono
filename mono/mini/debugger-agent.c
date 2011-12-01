@@ -4130,7 +4130,7 @@ resume_from_signal_handler (void *sigctx, void *func)
 #endif
 	mono_arch_monoctx_to_sigctx (&ctx, sigctx);
 
-#ifdef TARGET_ARM
+#ifdef __arm__
 #ifdef UCONTEXT_REG_CPSR
 	if ((gsize)UCONTEXT_REG_PC (sigctx) & 1)
 		/* Transition to thumb */
