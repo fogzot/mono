@@ -125,3 +125,12 @@ System.Linq/ParallelEnumerable.cs
 System.Linq/ParallelExecutionMode.cs
 System.Linq/ParallelMergeOptions.cs
 System.Linq/ParallelQuery.cs
+System.IO.MemoryMappedFiles/MemoryMappedFile.cs
+System.IO.MemoryMappedFiles/MemoryMappedFileAccess.cs
+System.IO.MemoryMappedFiles/MemoryMappedFileOptions.cs
+System.IO.MemoryMappedFiles/MemoryMappedFileRights.cs
+System.IO.MemoryMappedFiles/MemoryMappedViewStream.cs
+System.IO.MemoryMappedFiles/MemoryMappedViewAccessor.cs
+Microsoft.Win32.SafeHandles/SafeMemoryMappedFileHandle.cs
+Microsoft.Win32.SafeHandles/SafeMemoryMappedViewHandle.cs
+System.IO/HandleInheritability.cs
