@@ -190,6 +190,7 @@ typedef struct MonoAotCompile {
 	char *assembly_name_sym;
 	gboolean thumb_mixed, need_no_dead_strip, need_pt_gnu_stack;
 	GHashTable *ginst_hash;
+	gboolean global_symbols;
 #ifdef MONOTOUCH
 	gboolean direct_method_addresses;
 #endif
@@ -543,6 +544,7 @@ arch_init (MonoAotCompile *acfg)
 
 #ifdef MONOTOUCH
 	acfg->direct_method_addresses = TRUE;
+	acfg->global_symbols = TRUE;
 #endif
 }
 
@@ -3511,9 +3513,13 @@ emit_method_code (MonoAotCompile *acfg, MonoCompile *cfg)
 	/* Make the labels local */
 	emit_section_change (acfg, ".text", 0);
 	emit_alignment (acfg, func_alignment);
+	
+	if (acfg->global_symbols && acfg->need_no_dead_strip)
+		fprintf (acfg->fp, "	.no_dead_strip %s\n", cfg->asm_symbol);
+	
 	emit_label (acfg, cfg->asm_symbol);
 
-	if (acfg->aot_opts.write_symbols) {
+	if (acfg->aot_opts.write_symbols && !acfg->global_symbols) {
 		/* 
 		 * Write a C style symbol for every method, this has two uses:
 		 * - it works on platforms where the dwarf debugging info is not
@@ -7082,12 +7088,10 @@ mono_compile_assembly (MonoAssembly *ass, guint32 opts, const char *aot_options)
 
 			if (COMPILE_LLVM (cfg))
 				cfg->asm_symbol = g_strdup_printf ("%s%s", acfg->llvm_label_prefix, cfg->llvm_method_name);
+			else if (acfg->global_symbols)
+				cfg->asm_symbol = get_debug_sym (cfg->method, "", acfg->method_label_hash);
 			else
-#ifdef MONOTOUCH
-				cfg->asm_symbol = g_strdup_printf ("%sm_%x", acfg->llvm_label_prefix, method_index);
-#else
 				cfg->asm_symbol = g_strdup_printf ("%s%sm_%x", acfg->temp_prefix, acfg->llvm_label_prefix, method_index);
-#endif
 		}
 	}
 
