@@ -55,6 +55,11 @@
 #define MONO_ARCH_CONTEXT_DEF
 #endif
 
+#ifdef PLATFORM_ANDROID
+#  undef fprintf
+#  define fprintf(__ignore, ...) g_log ("mono", G_LOG_LEVEL_MESSAGE, __VA_ARGS__)
+#endif
+
 static gpointer restore_context_func, call_filter_func;
 static gpointer throw_exception_func, rethrow_exception_func;
 static gpointer throw_corlib_exception_func;

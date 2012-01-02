@@ -56,7 +56,7 @@
 #include "version.h"
 #include "debugger-agent.h"
 
-#if defined (TARGET_ARM) && defined (__i386__)
+#if defined (ARMOR) || (defined (TARGET_ARM) && defined (__i386__))
 /**
  * MonoTouch license validation code
  */
@@ -1508,7 +1508,7 @@ mono_main (int argc, char* argv[])
 #ifdef MONO_JIT_INFO_TABLE_TEST
 	int test_jit_info_table = FALSE;
 #endif
-#if defined (TARGET_ARM) && defined (__i386__)
+#if defined (ARMOR) || (defined (TARGET_ARM) && defined (__i386__))
 	gboolean entitled = VerifyEntitlement ();
 #endif
 
@@ -1841,9 +1841,13 @@ mono_main (int argc, char* argv[])
 		return 1;
 	}
 
-#if defined (TARGET_ARM) && defined (__i386__)
+#if defined (ARMOR) || (defined (TARGET_ARM) && defined (__i386__))
 	if (!entitled) {
+#ifdef PLATFORM_ANDROID
+		printf ("Your Mono for Android license appears to be invalid.\n");
+#else
 		printf ("Your MonoTouch license appears to be invalid.\n");
+#endif
 		return 4;
 	}
 #endif

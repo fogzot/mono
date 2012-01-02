@@ -24,6 +24,11 @@
 #include <mono/utils/mono-time.h>
 #include "trace.h"
 
+#ifdef PLATFORM_ANDROID
+#  undef printf
+#  define printf(...) g_log("mono", G_LOG_LEVEL_MESSAGE, __VA_ARGS__)
+#endif
+
 static MonoTraceSpec trace_spec;
 
 gboolean
