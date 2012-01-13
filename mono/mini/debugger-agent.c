@@ -4182,6 +4182,8 @@ resume_from_signal_handler (void *sigctx, void *func)
 	mono_arch_monoctx_to_sigctx (&ctx, sigctx);
 
 #ifdef __arm__
+	// FIXME: mono_arch_monoctx_to_sigctx () restores this from fp. (#2775)
+	UCONTEXT_REG_SP (sigctx) = ctx.esp;
 #ifdef UCONTEXT_REG_CPSR
 	if ((gsize)UCONTEXT_REG_PC (sigctx) & 1)
 		/* Transition to thumb */
