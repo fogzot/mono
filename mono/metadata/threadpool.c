@@ -1544,7 +1544,9 @@ async_invoke_thread_wait (MonoAsyncResult **arp, MonoInternalThread *thread, Thr
 			if (!down && nt <= tp->min_threads)
 				break;
 			if (down || InterlockedCompareExchange (&tp->nthreads, nt - 1, nt) == nt) {
+#ifndef DISABLE_PERFCOUNTERS
 				mono_perfcounter_update_value (tp->pc_nthreads, TRUE, -1);
+#endif
 				if (!tp->is_io) {
 					remove_wsq (wsq);
 				}
