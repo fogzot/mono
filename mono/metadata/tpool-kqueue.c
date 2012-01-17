@@ -67,62 +67,6 @@ tp_kqueue_shutdown (gpointer event_data)
 	g_free (data);
 }
 
-#ifdef MONOTOUCH
-#define SPLIT_TP_K_WAIT 1
-#endif
-#ifdef SPLIT_TP_K_WAIT
-static int
-tp_kqueue_wait_inner (int ready, struct kevent *events, SocketIOData *socket_io_data, gpointer* async_results, int kfd) __attribute__((noinline));
-
-static int
-tp_kqueue_wait_inner (int ready, struct kevent *events, SocketIOData *socket_io_data, gpointer* async_results, int kfd)
-{
-	int i;
-	int nresults = 0;
-	struct kevent *evt;
-
-	for (i = 0; i < ready; i++) {
-		int fd;
-		MonoMList *list;
-		MonoObject *ares;
-
-		evt = &events [i];
-		fd = evt->ident;
-		list = mono_g_hash_table_lookup (socket_io_data->sock_to_state, GINT_TO_POINTER (fd));
-		if (list != NULL && (evt->filter == EVFILT_READ || (evt->flags & EV_ERROR) != 0)) {
-			ares = get_io_event (&list, MONO_POLLIN);
-			if (ares != NULL)
-				async_results [nresults++] = ares;
-		}
-		if (list != NULL && (evt->filter == EVFILT_WRITE || (evt->flags & EV_ERROR) != 0)) {
-			ares = get_io_event (&list, MONO_POLLOUT);
-			if (ares != NULL)
-				async_results [nresults++] = ares;
-		}
-
-		if (list != NULL) {
-			int p;
-
-			mono_g_hash_table_replace (socket_io_data->sock_to_state, GINT_TO_POINTER (fd), list);
-			p = get_events_from_list (list);
-			if (evt->filter == EVFILT_READ && (p & MONO_POLLIN) != 0) {
-				EV_SET (evt, fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, 0);
-				kevent_change (kfd, evt, "READD read");
-			}
-
-			if (evt->filter == EVFILT_WRITE && (p & MONO_POLLOUT) != 0) {
-				EV_SET (evt, fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, 0);
-				kevent_change (kfd, evt, "READD write");
-			}
-		} else {
-			mono_g_hash_table_remove (socket_io_data->sock_to_state, GINT_TO_POINTER (fd));
-		}
-	}
-	
-	return nresults;
-}
-#endif
-
 #define KQUEUE_NEVENTS	128
 static void
 tp_kqueue_wait (gpointer p)
@@ -172,9 +116,6 @@ tp_kqueue_wait (gpointer p)
 			return; /* cleanup called */
 		}
 
-#ifdef SPLIT_TP_K_WAIT
-		nresults = tp_kqueue_wait_inner (ready, events, socket_io_data, async_results, kfd);
-#else
 		nresults = 0;
 		for (i = 0; i < ready; i++) {
 			int fd;
@@ -213,7 +154,6 @@ tp_kqueue_wait (gpointer p)
 				mono_g_hash_table_remove (socket_io_data->sock_to_state, GINT_TO_POINTER (fd));
 			}
 		}
-#endif
 		LeaveCriticalSection (&socket_io_data->io_lock);
 		threadpool_append_jobs (&async_io_tp, (MonoObject **) async_results, nresults);
 		memset (async_results, 0, sizeof (gpointer) * nresults);

@@ -1358,229 +1358,15 @@ should_i_die (ThreadPool *tp)
 	return result;
 }
 
-#ifdef MONOTOUCH
-#define SPLIT_TP_INVOKE 1
-#endif
-
-#ifdef SPLIT_TP_INVOKE
-static void  __attribute__ ((noinline))
-clear_stack (void)
-{
-	gpointer dt = alloca (128);
-	memset (dt, 0xFE, 128);
-}
-
-// this function can't be inlined, since it's split off from
-// async_invoke_thread with the purpose of being in a separate
-// frame so that we don't accidentally keep references to 
-// managed objects on the stack after we've finished processing work.
-// See xamarin bug #2619 for more information
-static gboolean __attribute__ ((noinline))
-async_invoke_thread_inner (MonoAsyncResult **arp, MonoInternalThread *thread, ThreadPool *tp)
-{
-	MonoDomain *domain;
-	// we take a pointer to the MonoAsyncResult to not leave a reference to the object itself 
-	// on the stack.
-	gpointer data;
-	MonoAsyncResult *ar;
-	MonoClass *klass;
-	gboolean is_io_task;
-	gboolean is_socket;
-
-	data = *arp;
-	*arp = NULL;
-
-	is_io_task = FALSE;
-	ar = (MonoAsyncResult *) data;
-
-	if (ar) {
-		InterlockedIncrement (&tp->busy_threads);
-		domain = ((MonoObject *)ar)->vtable->domain;
-#ifndef DISABLE_SOCKETS
-		klass = ((MonoObject *) data)->vtable->klass;
-		is_io_task = !is_corlib_asyncresult (domain, klass);
-		is_socket = FALSE;
-		if (is_io_task) {
-			MonoSocketAsyncResult *state = (MonoSocketAsyncResult *) data;
-			is_socket = is_socketasyncresult (domain, klass);
-			ar = state->ares;
-			switch (state->operation) {
-			case AIO_OP_RECEIVE:
-				state->total = ICALL_RECV (state);
-				break;
-			case AIO_OP_SEND:
-				state->total = ICALL_SEND (state);
-				break;
-			}
-		}
-#endif
-		/* worker threads invokes methods in different domains,
-		 * so we need to set the right domain here */
-		g_assert (domain);
-
-		if (mono_domain_is_unloading (domain) || mono_runtime_is_shutting_down ()) {
-			threadpool_jobs_dec ((MonoObject *)ar);
-			data = NULL;
-			ar = NULL;
-			InterlockedDecrement (&tp->busy_threads);
-		} else {
-			mono_thread_push_appdomain_ref (domain);
-			if (threadpool_jobs_dec ((MonoObject *)ar)) {
-				data = NULL;
-				ar = NULL;
-				mono_thread_pop_appdomain_ref ();
-				InterlockedDecrement (&tp->busy_threads);
-				return FALSE;
-			}
-
-			if (mono_domain_set (domain, FALSE)) {
-				MonoObject *exc;
-
-				if (tp_item_begin_func)
-					tp_item_begin_func (tp_item_user_data);
-
-				if (!is_io_task && ar->add_time > 0)
-					process_idle_times (tp, ar->add_time);
-				exc = mono_async_invoke (tp, ar);
-				if (tp_item_end_func)
-					tp_item_end_func (tp_item_user_data);
-				if (exc && mono_runtime_unhandled_exception_policy_get () == MONO_UNHANDLED_POLICY_CURRENT) {
-					gboolean unloaded;
-					MonoClass *klass;
-
-					klass = exc->vtable->klass;
-					unloaded = is_appdomainunloaded_exception (exc->vtable->domain, klass);
-					if (!unloaded && klass != mono_defaults.threadabortexception_class) {
-						mono_unhandled_exception (exc);
-						if (mono_environment_exitcode_get () == 1)
-							exit (255);
-					}
-					if (klass == mono_defaults.threadabortexception_class)
-						mono_thread_internal_reset_abort (thread);
-				}
-				if (is_socket && tp->is_io) {
-					MonoSocketAsyncResult *state = (MonoSocketAsyncResult *) data;
-
-					if (state->completed && state->callback) {
-						MonoAsyncResult *cb_ares;
-						cb_ares = create_simple_asyncresult ((MonoObject *) state->callback,
-											(MonoObject *) state);
-						icall_append_job ((MonoObject *) cb_ares);
-					}
-				}
-				mono_domain_set (mono_get_root_domain (), TRUE);
-			}
-			mono_thread_pop_appdomain_ref ();
-			InterlockedDecrement (&tp->busy_threads);
-			/* If the callee changes the background status, set it back to TRUE */
-			mono_thread_clr_state (thread , ~ThreadState_Background);
-			if (!mono_thread_test_state (thread , ThreadState_Background))
-				ves_icall_System_Threading_Thread_SetState (thread, ThreadState_Background);
-		}
-	}
-
-	ar = NULL;
-	data = NULL;
-	
-	return TRUE;
-}
-
-// this function can't be inlined, since it's split off from
-// async_invoke_thread with the purpose of being in a separate
-// frame so that we don't accidentally keep references to 
-// managed objects on the stack after we've finished processing work.
-// See xamarin bug #2619 for more information
-static gboolean __attribute__ ((noinline))
-async_invoke_thread_wait (MonoAsyncResult **arp, MonoInternalThread *thread, ThreadPool *tp, MonoWSQ *wsq)
-{
-	gboolean must_die;
-	gpointer data = NULL;
-	int n_naps = 0;
-
-	data = NULL;
-
-	*arp = NULL;
-	must_die = should_i_die (tp);
-	if (!must_die && (tp->is_io || !mono_wsq_local_pop (&data)))
-		dequeue_or_steal (tp, &data, wsq);
-
-	n_naps = 0;
-	while (!must_die && !data && n_naps < 4) {
-		gboolean res;
-
-		InterlockedIncrement (&tp->waiting);
-	#if defined(__OpenBSD__)
-		while (mono_cq_count (tp->queue) == 0 && (res = mono_sem_wait (&tp->new_job, TRUE)) == -1) {// && errno == EINTR) {
-	#else
-		while (mono_cq_count (tp->queue) == 0 && (res = mono_sem_timedwait (&tp->new_job, 2000, TRUE)) == -1) {// && errno == EINTR) {
-	#endif
-			if (mono_runtime_is_shutting_down ())
-				break;
-			if (THREAD_WANTS_A_BREAK (thread))
-				mono_thread_interruption_checkpoint ();
-		}
-		InterlockedDecrement (&tp->waiting);
-		if (mono_runtime_is_shutting_down ())
-			break;
-		must_die = should_i_die (tp);
-		dequeue_or_steal (tp, &data, wsq);
-		n_naps++;
-	}
-
-	if (!data && !tp->is_io && !mono_runtime_is_shutting_down ()) {
-		mono_wsq_local_pop (&data);
-		if (data && must_die) {
-			InterlockedCompareExchange (&tp->destroy_thread, 1, 0);
-			pulse_on_new_job (tp);
-		}
-	}
-
-	if (!data) {
-		gint nt;
-		gboolean down;
-		while (1) {
-			nt = tp->nthreads;
-			down = mono_runtime_is_shutting_down ();
-			if (!down && nt <= tp->min_threads)
-				break;
-			if (down || InterlockedCompareExchange (&tp->nthreads, nt - 1, nt) == nt) {
-#ifndef DISABLE_PERFCOUNTERS
-				mono_perfcounter_update_value (tp->pc_nthreads, TRUE, -1);
-#endif
-				if (!tp->is_io) {
-					remove_wsq (wsq);
-				}
-
-				mono_profiler_thread_end (thread->tid);
-
-				if (tp_finish_func)
-					tp_finish_func (tp_hooks_user_data);
-				return FALSE;
-			}
-		}
-	}
-
-	*arp = data;
-	return TRUE;
-}
-#endif
-
 static void
 async_invoke_thread (gpointer data)
 {
-#ifndef SPLIT_TP_INVOKE
 	MonoDomain *domain;
-#endif
 	MonoInternalThread *thread;
 	MonoWSQ *wsq;
 	ThreadPool *tp;
-#ifndef SPLIT_TP_INVOKE
 	gboolean must_die;
-#endif
 	const gchar *name;
-#ifdef SPLIT_TP_INVOKE
-	MonoAsyncResult **arp = g_malloc (sizeof (MonoAsyncResult *));
-#endif
   
 	tp = data;
 	wsq = NULL;
@@ -1596,16 +1382,8 @@ async_invoke_thread (gpointer data)
 	if (tp_start_func)
 		tp_start_func (tp_hooks_user_data);
 
-#ifdef SPLIT_TP_INVOKE
-	*arp = NULL;
-#endif
 	data = NULL;
 	for (;;) {
-#ifdef SPLIT_TP_INVOKE
-		if (!async_invoke_thread_inner (arp, thread, tp))
-			continue;
-		clear_stack ();
-#else
 		MonoAsyncResult *ar;
 		MonoClass *klass;
 		gboolean is_io_task;
@@ -1701,15 +1479,6 @@ async_invoke_thread (gpointer data)
 		}
 
 		ar = NULL;
-#endif
-
-#ifdef SPLIT_TP_INVOKE
-		*arp = NULL;
-		if (!async_invoke_thread_wait (arp, thread, tp, wsq)) {
-			g_free (arp);
-			return;
-		}
-#else
 		data = NULL;
 		must_die = should_i_die (tp);
 		if (!must_die && (tp->is_io || !mono_wsq_local_pop (&data)))
@@ -1775,7 +1544,6 @@ async_invoke_thread (gpointer data)
 				}
 			}
 		}
-#endif
 	}
 
 	g_assert_not_reached ();
