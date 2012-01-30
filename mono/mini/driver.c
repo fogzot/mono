@@ -117,13 +117,33 @@ static inline char *GetMAC () {
 	return mac;
 }
 
+// http://developer.apple.com/library/mac/#technotes/tn1103/_index.html
 static inline char *GetSerial () {
+	char *result = NULL;
 	io_service_t platform = IOServiceGetMatchingService (kIOMasterPortDefault, IOServiceMatching ("IOPlatformExpertDevice"));
-	CFStringRef serial = IORegistryEntryCreateCFProperty (platform, CFSTR (kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
-
-	IOObjectRelease (platform);
-
-	return strdup (CFStringGetCStringPtr (serial, kCFStringEncodingMacRoman));
+	if (platform) {
+		CFStringRef serial = IORegistryEntryCreateCFProperty (platform, CFSTR (kIOPlatformSerialNumberKey), kCFAllocatorDefault, 0);
+		if (serial) {
+			// http://developer.apple.com/library/mac/#documentation/CoreFoundation/Reference/CFStringRef/Reference/reference.html
+			// <quote>A pointer to a C string or NULL if the internal storage of theString does not allow this to be returned efficiently.</quote>
+			const char *ptr = CFStringGetCStringPtr (serial, kCFStringEncodingMacRoman);
+			if (ptr) {
+				result = strdup (ptr);
+			} else {
+				// second chance (see bug #1777 and 1705)
+				CFIndex length = CFStringGetMaximumSizeForEncoding (CFStringGetLength (serial), kCFStringEncodingMacRoman) + 1;
+				result = (char *) malloc (length);
+				// <quote>You also typically call it as a “backup” when a prior call to the CFStringGetCStringPtr function fails.</quote>
+				if (!CFStringGetCString (serial, result, length, kCFStringEncodingMacRoman)) {
+					free (result);
+					result = NULL;
+				}
+			}
+			CFRelease (serial);
+		}
+		IOObjectRelease (platform);
+	}
+	return result;
 }
 
 static inline char *mono_sha1_execute (char *a, int a_len, char *b, int b_len, char *c, int c_len) {
