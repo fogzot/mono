@@ -1457,6 +1457,8 @@ namespace System.Net
 						bodyBufferLength = writeStream.WriteBufferLength;
 					}
 					b = Redirect (result, code);
+					if (b && ntlm_auth_state != 0)
+						ntlm_auth_state = 0;
 				}
 
 				if (resp != null && c >= 300 && c != 304)
